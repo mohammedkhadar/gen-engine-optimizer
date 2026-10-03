@@ -26,7 +26,7 @@ if (process.env.EMAIL_SERVER && process.env.EMAIL_FROM) {
 }
 
 export const authOptions: NextAuthOptions = {
-  // Use Prisma adapter only when a database is configured; otherwise
+  debug: process.env.NODE_ENV !== "production",
   // fall back to stateless JWT (demo mode, no persistence).
   ...(hasDatabase ? { adapter: PrismaAdapter(prisma as any) as any } : {}),
   providers,

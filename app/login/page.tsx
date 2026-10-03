@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Nav } from "@/components/ui";
+import { SignInButton } from "@/components/SignInButton";
 import { authEnabled } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -22,9 +24,9 @@ export default function LoginPage() {
           </div>
         ) : (
           <div className="glass mt-6 rounded-2xl p-6">
-            <a href="/api/auth/signin?callbackUrl=/dashboard" className="block rounded-xl bg-white px-4 py-2.5 font-semibold text-black">
-              Sign in →
-            </a>
+            <Suspense fallback={<div className="text-sm text-slate-400">Loading…</div>}>
+              <SignInButton />
+            </Suspense>
           </div>
         )}
       </div>

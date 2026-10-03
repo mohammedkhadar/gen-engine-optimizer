@@ -30,12 +30,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           ))}
         </nav>
+        <div className="mt-4 shrink-0 rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 text-sm">
+          <div className="font-semibold">Growth plan trial</div>
+          <div className="mt-1 text-xs text-slate-400">9 days left · 412 prompts used</div>
+          <Link href="/pricing" className="mt-3 block rounded-lg bg-white px-3 py-2 text-center text-xs font-semibold text-black">Upgrade</Link>
+        </div>
         <div className="mt-3 shrink-0 space-y-1 border-t border-white/10 pt-3">
-          <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 text-sm">
-            <div className="font-semibold">Growth plan trial</div>
-            <div className="mt-1 text-xs text-slate-400">9 days left · 412 prompts used</div>
-            <Link href="/pricing" className="mt-3 block rounded-lg bg-white px-3 py-2 text-center text-xs font-semibold text-black">Upgrade</Link>
-          </div>
           {email ? (
             <div className="truncate rounded-lg px-3 py-2 text-xs text-slate-400" title={email}>
               Signed in as<br /><span className="font-medium text-slate-200">{email}</span>

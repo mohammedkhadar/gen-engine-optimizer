@@ -1,0 +1,51 @@
+# --- Core ---
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=change-me-to-a-long-random-string
+SITE_BRAND=RankAI GEO
+SITE_DOMAIN=example.com
+
+# --- Database (Supabase / Neon / RDS Postgres) ---
+# Leave empty for local demo mode (file fallback, no login persistence).
+# DATABASE_URL = pooled (port 6543, transaction mode) — used at runtime.
+# DIRECT_URL   = direct  (port 5432, session mode)    — used for migrations.
+# Both from Supabase dashboard → Project Settings → Database → Connection string.
+DATABASE_URL=postgresql://postgres:password@db:5432/rankai
+DIRECT_URL=postgresql://postgres:password@db:5432/postgres
+
+# --- Supabase client (optional: realtime, storage) ---
+# From Supabase dashboard → Project Settings → API.
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+
+# --- Auth (optional until you want real login) ---
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Passwordless email (e.g. smtp://user:pass@smtp.resend.com:587)
+EMAIL_SERVER=
+EMAIL_FROM=noreply@example.com
+
+# --- Billing (Stripe) ---
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_STARTER=price_...
+STRIPE_PRICE_GROWTH=price_...
+STRIPE_PRICE_SCALE=price_...
+
+# --- Live AI citations (any one upgrades Prompt Lab from heuristic → live) ---
+PERPLEXITY_API_KEY=
+EXA_API_KEY=
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
+
+# --- Open-source models (free / cheap alternatives to OpenAI) ---
+# Groq: hosted Llama 3.3 / Mixtral / Qwen, generous free tier. Key from console.groq.com
+GROQ_API_KEY=
+GROQ_MODEL=llama-3.3-70b-versatile
+# Ollama: fully local, no key needed. Install from ollama.com, then `ollama pull llama3.1`.
+# Set OLLAMA_ENABLED=1 to auto-detect a running daemon, or OLLAMA_MODEL to force it.
+OLLAMA_ENABLED=
+OLLAMA_MODEL=
+OLLAMA_BASE_URL=http://localhost:11434/v1
+
+# --- Cron ---
+CRON_SECRET=change-me-cron-secret

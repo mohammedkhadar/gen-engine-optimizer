@@ -22,7 +22,7 @@ export default function LoginPage() {
           </div>
         ) : (
           <div className="glass mt-6 rounded-2xl p-6">
-            <a href="/api/auth/signin" className="block rounded-xl bg-white px-4 py-2.5 font-semibold text-black">
+            <a href="/api/auth/signin?callbackUrl=/dashboard" className="block rounded-xl bg-white px-4 py-2.5 font-semibold text-black">
               Sign in →
             </a>
           </div>

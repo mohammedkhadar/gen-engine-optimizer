@@ -69,15 +69,18 @@ function AuditInner() {
       {result && (
         <>
           <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="flex items-center gap-5">
-              <ScoreRing score={result.overall} />
-              <div>
+            <Card className="flex flex-col items-center gap-5 overflow-hidden sm:flex-row">
+              <div className="shrink-0"><ScoreRing score={result.overall} /></div>
+              <div className="min-w-0 flex-1 text-center sm:text-left">
                 <div className="text-sm text-slate-400">Overall GEO score</div>
-                <div className="text-xl font-bold">Grade {result.grade} · {result.url}</div>
+                <div className="text-xl font-bold">Grade {result.grade}</div>
+                <div className="mt-0.5 truncate text-sm font-medium text-slate-300" title={result.url}>
+                  {(() => { try { return new URL(result.url).hostname; } catch { return result.url; } })()}
+                </div>
                 <div className="mt-1 text-xs text-slate-500">
                   {result.fetched ? `Fetched live · ${result.meta.wordCount.toLocaleString()} words · ${result.meta.loadMs}ms` : "Estimated (fetch blocked)"}
                 </div>
-                {result.meta.title && <div className="mt-1 text-xs text-slate-400 truncate max-w-[260px]">“{result.meta.title}”</div>}
+                {result.meta.title && <div className="mt-1 truncate text-xs text-slate-400">“{result.meta.title}”</div>}
               </div>
             </Card>
             <Card className="lg:col-span-2">

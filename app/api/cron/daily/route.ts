@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, hasDatabase } from "@/lib/db";
 import { listAuditsLocal } from "@/lib/store";
 
-// Daily cron: Vercel Cron / external scheduler hits this with CRON_SECRET.
-// Re-checks recent domains and appends fresh audits + prompt runs via internal calls.
+// Daily cron: Vercel Cron / external scheduler hits this.
+// Auth: Vercel sends `Authorization: Bearer <CRON_SECRET>` automatically;
+// external schedulers can use `?secret=<CRON_SECRET>` instead.
 export async function GET(req: NextRequest) {
+  const expected = process.env.CRON_SECRET;
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   const secret = req.nextUrl.searchParams.get("secret");
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  if (expected && bearer !== expected && secret !== expected) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const base = process.env.NEXTAUTH_URL ?? req.nextUrl.origin;

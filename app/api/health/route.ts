@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { providerStatus } from "@/lib/providers/citations";
 import { hasDatabase } from "@/lib/db";
+import { hasStripe } from "@/lib/billing";
 import { authEnabled } from "@/lib/auth";
 import { hasSupabaseClient } from "@/lib/supabase";
 
@@ -12,7 +13,7 @@ export async function GET() {
       database: hasDatabase ? "postgres" : "local-fallback",
       supabase: hasSupabaseClient ? "configured" : "demo",
       auth: authEnabled ? "configured" : "demo",
-      billing: "free",
+      stripe: hasStripe ? "configured" : "demo",
       citations: providerStatus(),
     },
   });

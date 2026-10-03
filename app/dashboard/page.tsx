@@ -79,7 +79,7 @@ export default function DashboardOverview() {
         <Card className="flex flex-col items-center justify-center text-center">
           <h3 className="font-semibold self-start">Latest GEO score</h3>
           <div className="mt-3"><ScoreRing score={audit?.overall ?? 63} /></div>
-          <div className="mt-2 text-sm text-slate-400">Grade {audit?.grade ?? "C"} · {audit?.url ?? "acme.com"}</div>
+          <div className="mt-2 w-full truncate text-sm text-slate-400" title={audit?.url ?? "acme.com"}>Grade {audit?.grade ?? "C"} · {audit?.url ?? "acme.com"}</div>
           <Link href="/dashboard/audit" className="mt-4 text-sm font-medium text-violet-300 hover:text-violet-200">View full audit →</Link>
         </Card>
       </div>

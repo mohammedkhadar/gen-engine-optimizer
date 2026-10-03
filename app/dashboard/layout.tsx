@@ -24,10 +24,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
           ))}
         </nav>
-        <div className="mt-auto rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm">
-          <div className="font-semibold">Free forever 🎉</div>
-          <div className="mt-1 text-xs text-slate-400">All engines · unlimited audits</div>
-          <Link href="/dashboard/audit" className="mt-3 block rounded-lg bg-white px-3 py-2 text-center text-xs font-semibold text-black">Run audit</Link>
+        <div className="mt-auto rounded-xl border border-violet-500/30 bg-violet-500/10 p-4 text-sm">
+          <div className="font-semibold">Growth plan trial</div>
+          <div className="mt-1 text-xs text-slate-400">9 days left · 412 prompts used</div>
+          <Link href="/pricing" className="mt-3 block rounded-lg bg-white px-3 py-2 text-center text-xs font-semibold text-black">Upgrade</Link>
         </div>
       </aside>
       <div className="flex-1">

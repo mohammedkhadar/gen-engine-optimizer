@@ -133,17 +133,17 @@ export default function LandingPage() {
 
       {/* PRICING TEASER */}
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <SectionTitle kicker="Pricing" title="Free forever. Every feature." />
+        <SectionTitle kicker="Pricing" title="Start free, scale when AI sends customers" />
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           {[
-            { name: "Starter", price: "Free", feats: ["1 domain", "50 prompts/mo", "Weekly visibility checks", "GEO audit + fixes"], cta: "Start free" },
-            { name: "Growth", price: "Free", feats: ["3 domains", "500 prompts/mo", "Daily checks, 7 engines", "Competitor intel + alerts"], cta: "Start free", hot: true },
-            { name: "Scale", price: "Free", feats: ["10 domains", "Unlimited prompts", "API + white-label reports", "llms.txt + schema tools"], cta: "Start free" },
+            { name: "Starter", price: "$29", feats: ["1 domain", "50 prompts/mo", "Weekly visibility checks", "GEO audit + fixes"], cta: "Start free" },
+            { name: "Growth", price: "$79", feats: ["3 domains", "500 prompts/mo", "Daily checks, 7 engines", "Competitor intel + alerts"], cta: "Start 14-day trial", hot: true },
+            { name: "Scale", price: "$199", feats: ["10 domains", "Unlimited prompts", "API + white-label reports", "Dedicated GEO strategist"], cta: "Talk to sales" },
           ].map((p) => (
             <Card key={p.name} className={p.hot ? "border-violet-500/50 ring-1 ring-violet-500/30" : ""}>
               {p.hot && <Badge tone="violet">Most popular</Badge>}
               <h3 className="mt-2 font-semibold">{p.name}</h3>
-              <div className="mt-1 text-4xl font-extrabold">{p.price}</div>
+              <div className="mt-1 text-4xl font-extrabold">{p.price}<span className="text-base font-medium text-slate-400">/mo</span></div>
               <ul className="mt-4 space-y-2 text-sm text-slate-300">
                 {p.feats.map((f) => <li key={f} className="flex gap-2"><Check size={16} className="mt-0.5 text-emerald-400" />{f}</li>)}
               </ul>

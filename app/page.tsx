@@ -6,8 +6,6 @@ import {
   Check, ArrowRight, Zap, Globe, BrainCircuit, ShieldCheck,
 } from "lucide-react";
 
-const engines = ["ChatGPT", "Perplexity", "Gemini", "Claude", "Google AI Overviews", "Copilot", "Grok"];
-
 const features = [
   { icon: Radar, title: "AI Visibility Tracking", desc: "Monitor if and where your brand is mentioned across 7 AI engines, daily. Position, sentiment, share-of-voice." },
   { icon: BrainCircuit, title: "GEO Site Audit", desc: "60+ checks: schema, E-E-A-T, answer-readiness, crawlability, citability. Real fetch + explainable score." },
@@ -26,17 +24,18 @@ export default function LandingPage() {
         <div className="grid-bg absolute inset-0" />
         <div className="absolute left-1/2 top-0 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-violet-600/20 blur-[120px]" />
         <div className="relative mx-auto max-w-7xl px-6 pb-16 pt-20 text-center">
-          <Badge tone="violet"><Sparkles size={14} /> New: Google AI Overviews + Perplexity tracking</Badge>
+          <Badge tone="violet"><Sparkles size={14} /> Free 60-second audit — no signup, no sales call</Badge>
           <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
-            Get your business cited by <span className="gradient-text">AI answers</span>
+            AI recommends your competitors.<br /><span className="gradient-text">Here's exactly how to fix that.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-400">
-            SEO won Google. <strong className="text-slate-200">GEO wins ChatGPT, Perplexity & Gemini.</strong> RankAI
-            audits your site, tracks every AI mention, and tells you exactly what to fix to become the cited answer.
+            Tracking tools show you charts of being invisible. <strong className="text-slate-200">RankAI tells you what to change:</strong> a
+            live audit of your site across 6 GEO pillars, every fix ranked by impact — schema, FAQs, excerpts, llms.txt —
+            then daily tracking that proves the citations climbing.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link href="/dashboard" className="rounded-xl bg-white px-6 py-3 font-semibold text-black hover:bg-slate-200">
-              Run free AI visibility audit →
+              Get my fix list — free →
             </Link>
             <Link href="/pricing" className="glass rounded-xl px-6 py-3 font-semibold hover:bg-white/10">
               View pricing
@@ -46,8 +45,8 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-slate-400">
-            <span className="mr-1">We track:</span>
-            {engines.map((e) => (
+            <span className="mr-1">Fixes cover:</span>
+            {["FAQ schema", "AI excerpts", "llms.txt", "E-E-A-T", "Comparisons", "Reviews", "Citations"].map((e) => (
               <span key={e} className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{e}</span>
             ))}
           </div>
@@ -133,12 +132,12 @@ export default function LandingPage() {
 
       {/* PRICING TEASER */}
       <section className="mx-auto max-w-7xl px-6 py-20">
-        <SectionTitle kicker="Pricing" title="Start free, scale when AI sends customers" />
+        <SectionTitle kicker="Pricing" title="Pay for fixes and proof, not dashboards" sub="Every tier includes the full audit + fix toolkit. Tracking depth and white-label reports scale with plan — agencies, look at Scale." />
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           {[
-            { name: "Starter", price: "$29", feats: ["1 domain", "50 prompts/mo", "Weekly visibility checks", "GEO audit + fixes"], cta: "Start free" },
-            { name: "Growth", price: "$79", feats: ["3 domains", "500 prompts/mo", "Daily checks, 7 engines", "Competitor intel + alerts"], cta: "Start 14-day trial", hot: true },
-            { name: "Scale", price: "$199", feats: ["10 domains", "Unlimited prompts", "API + white-label reports", "Dedicated GEO strategist"], cta: "Talk to sales" },
+            { name: "Starter", price: "$29", feats: ["1 domain, full fix list", "50 prompts/mo proof-tracking", "Schema + FAQ + llms.txt generator", "Citation alerts"], cta: "Fix my site" },
+            { name: "Growth", price: "$79", feats: ["3 domains + competitor fix-gaps", "500 prompts/mo, 7 engines", "Content optimizer + steal-their-citations playbook", "Weekly citation-lift report"], cta: "Start 14-day trial", hot: true },
+            { name: "Scale / Agency", price: "$199", feats: ["10 domains, unlimited seats", "White-label client reports", "Free-audit widget for YOUR lead gen", "API + dedicated GEO strategist"], cta: "Talk to sales" },
           ].map((p) => (
             <Card key={p.name} className={p.hot ? "border-violet-500/50 ring-1 ring-violet-500/30" : ""}>
               {p.hot && <Badge tone="violet">Most popular</Badge>}
@@ -157,10 +156,10 @@ export default function LandingPage() {
       <section className="mx-auto max-w-5xl px-6 pb-20">
         <div className="rounded-3xl border border-violet-500/30 bg-gradient-to-br from-violet-600/20 to-emerald-600/10 p-10 text-center">
           <ShieldCheck className="mx-auto text-emerald-300" size={32} />
-          <h2 className="mt-3 text-3xl font-bold">Your buyers already ask AI. Are you the answer?</h2>
-          <p className="mx-auto mt-2 max-w-xl text-slate-400">Run a free 60-second GEO audit and see exactly how ChatGPT, Perplexity and Gemini see your business.</p>
+          <h2 className="mt-3 text-3xl font-bold">Stop losing buyers to AI answers that never mention you.</h2>
+          <p className="mx-auto mt-2 max-w-xl text-slate-400">Run the free 60-second audit and get your ranked fix list — the exact changes that turn invisibility into citations.</p>
           <Link href="/dashboard/audit" className="mt-6 inline-block rounded-xl bg-white px-6 py-3 font-semibold text-black hover:bg-slate-200">
-            Audit my business now →
+            Get my fix list →
           </Link>
         </div>
       </section>

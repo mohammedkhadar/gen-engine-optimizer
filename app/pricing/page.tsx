@@ -5,9 +5,9 @@ import { Nav, Footer, Card } from "@/components/ui";
 import { Check, Loader2 } from "lucide-react";
 
 const tiers = [
-  { id: "STARTER", name: "Starter", price: "$29", desc: "For local businesses getting cited for the first time.", feats: ["1 domain", "50 prompt tests/mo", "Weekly AI visibility checks", "GEO audit + prioritized fixes", "Citation alerts"], cta: "Start free" },
-  { id: "GROWTH", name: "Growth", price: "$79", desc: "For teams competing to be THE answer in their category.", feats: ["3 domains + 2 competitors each", "500 prompt tests/mo", "Daily checks across 7 engines", "Competitor intel + content optimizer", "Slack/email alerts + reports"], cta: "Start 14-day trial", hot: true },
-  { id: "SCALE", name: "Scale / Agency", price: "$199", desc: "For agencies & multi-location brands.", feats: ["10 domains, unlimited seats", "Unlimited prompts + API", "White-label HTML reports", "llms.txt + schema automation", "Dedicated GEO strategist"], cta: "Talk to sales" },
+  { id: "STARTER", name: "Starter", price: "$29", desc: "For local businesses getting cited for the first time. Audit → fix list → done.", feats: ["1 domain, full fix list", "50 prompt tests/mo proof-tracking", "Schema + FAQ + llms.txt generator", "Citation gained/lost alerts"], cta: "Fix my site" },
+  { id: "GROWTH", name: "Growth", price: "$79", desc: "For teams competing to be THE answer. Steal competitors' citations, then watch yours climb.", feats: ["3 domains + competitor fix-gaps", "500 prompt tests/mo, 7 engines", "Content optimizer + citation playbook", "Weekly citation-lift report"], cta: "Start 14-day trial", hot: true },
+  { id: "SCALE", name: "Scale / Agency", price: "$199", desc: "For agencies: run free audits as lead gen, sell the fix as a service.", feats: ["10 domains, unlimited seats", "White-label client reports", "Embeddable free-audit widget", "API + dedicated GEO strategist"], cta: "Talk to sales" },
 ];
 
 export default function PricingPage() {
@@ -32,8 +32,8 @@ export default function PricingPage() {
       <Nav />
       <div className="mx-auto max-w-7xl px-6 py-16">
         <div className="text-center">
-          <h1 className="text-4xl font-extrabold">Pricing that pays for itself with one AI customer</h1>
-          <p className="mx-auto mt-3 max-w-xl text-slate-400">Live Stripe checkout when keys are set — demo mode otherwise. Cancel anytime.</p>
+          <h1 className="text-4xl font-extrabold">Dashboards don&apos;t get you cited. Fixes do.</h1>
+          <p className="mx-auto mt-3 max-w-xl text-slate-400">Every plan includes the audit, the ranked fix list, and the generators — tracking just proves it worked. Cancel anytime.</p>
         </div>
         <div className="mt-10 grid gap-5 md:grid-cols-3">
           {tiers.map((t) => (

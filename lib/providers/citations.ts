@@ -82,12 +82,22 @@ async function queryOpenAICompatible(
   }
 }
 
-/** Groq — hosted open-source models (Llama 3.3, Mixtral, Qwen). Generous free tier. */
+/** Groq — hosted open-source models (GPT-OSS, Qwen, Llama). Generous free tier. */
 async function queryGroq(prompt: string): Promise<{ text: string; model: string } | null> {
   if (!process.env.GROQ_API_KEY) return null;
-  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
   const text = await queryOpenAICompatible("https://api.groq.com/openai/v1", process.env.GROQ_API_KEY, model, prompt);
   return text ? { text, model } : null;
+}
+
+function openModelLabel(model: string) {
+  const m = model.toLowerCase();
+  if (m.includes("llama")) return "Llama (open)";
+  if (m.includes("qwen")) return "Qwen (open)";
+  if (m.includes("mistral") || m.includes("mixtral")) return "Mistral (open)";
+  if (m.includes("gpt-oss")) return "GPT-OSS (open)";
+  if (m.includes("deepseek")) return "DeepSeek (open)";
+  return "Open model";
 }
 
 async function queryOpenAI(prompt: string): Promise<string | null> {
@@ -139,7 +149,9 @@ export async function livePromptTest(brand: string, domain: string, prompt: stri
 
   // An open-source engine row appears only when Groq or Ollama is actually reachable.
   const openModel = groq ?? ollama;
-  const allEngines = openModel ? [...engines, `Llama 3 (open, via ${groq ? "Groq" : "Ollama"})`] : engines;
+  const allEngines = openModel
+    ? [...engines, `${openModelLabel(openModel.model)} via ${groq ? "Groq" : "Ollama"}`]
+    : engines;
 
   const anyReal = pplx || exaSources || oai || openModel;
   const provider = pplx
@@ -169,9 +181,10 @@ export async function livePromptTest(brand: string, domain: string, prompt: stri
     let text = "";
     let sources: string[] = [];
     let rowProvider = provider;
+    const isOpenRow = j === engines.length;
     if (engine === "Perplexity" && pplx) { text = pplx.text; sources = pplx.sources; }
     else if (engine === "ChatGPT" && oai) { text = oai; }
-    else if (engine.startsWith("Llama 3") && openModel) {
+    else if (isOpenRow && openModel) {
       text = openModel.text;
       rowProvider = groq ? "groq" : "ollama";
     }
@@ -186,7 +199,7 @@ export async function livePromptTest(brand: string, domain: string, prompt: stri
       sentiment: mentioned ? "positive" as const : "neutral" as const,
       snippet: text ? text.slice(0, 280) : undefined,
       sources: sources.length ? sources : undefined,
-      provider: rowProvider,
+      provider: text ? rowProvider : "heuristic",
     };
   });
 }

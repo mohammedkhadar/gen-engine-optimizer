@@ -167,7 +167,7 @@ export default function VideoPage() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const timer = useRef<NodeJS.Timeout | null>(null);
   const speakingRef = useRef(false);
-  const audioRef = useRef<{ ctx: AudioContext; gain: GainNode } | null>(null);
+  const audioRef = useRef<{ ctx: AudioContext; gain: GainNode; sched?: number } | null>(null);
   const idxRef = useRef(0);
 
   // Browsers block audio until the first user gesture. Sound defaults ON and
@@ -179,32 +179,81 @@ export default function VideoPage() {
     window.speechSynthesis.onvoiceschanged = load;
     return () => {
       window.speechSynthesis.cancel();
+      if (audioRef.current?.sched) clearInterval(audioRef.current.sched);
       audioRef.current?.ctx.close().catch(() => {});
     };
   }, []);
 
+  // Upbeat 116 BPM loop, fully synthesized: kick, hats, bass, offbeat
+  // chord stabs + pentatonic pluck over C – G – Am – F.
   const startMusic = () => {
     try {
       if (audioRef.current) { audioRef.current.ctx.resume(); return; }
       const Ctx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx: AudioContext = new Ctx();
-      const gain = ctx.createGain();
-      gain.gain.value = 0;
-      const filter = ctx.createBiquadFilter();
-      filter.type = "lowpass"; filter.frequency.value = 650;
-      filter.connect(gain); gain.connect(ctx.destination);
-      [110, 138.59, 164.81, 220].forEach((f, i) => {
+      const master = ctx.createGain();
+      master.gain.value = 0;
+      master.connect(ctx.destination);
+
+      const prog = [
+        { root: 130.81, chord: [261.63, 329.63, 392.0] },  // C
+        { root: 98.0, chord: [196.0, 246.94, 392.0] },    // G
+        { root: 110.0, chord: [220.0, 261.63, 329.63] },  // Am
+        { root: 87.31, chord: [174.61, 220.0, 349.23] },  // F
+      ];
+      const melody = [523.25, 587.33, 659.25, 783.99, 880.0, 783.99, 659.25, 587.33];
+      const bpm = 116;
+      const s16 = 60 / bpm / 4;
+
+      const noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate);
+      const nd = noiseBuf.getChannelData(0);
+      for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+      const tone = (f: number, t: number, dur: number, type: OscillatorType, vol: number, slideTo?: number) => {
         const o = ctx.createOscillator();
-        o.type = i % 2 ? "sine" : "triangle"; o.frequency.value = f;
-        const g = ctx.createGain(); g.gain.value = 0.22;
-        // slow swell so it feels like ambient music, not a drone
-        const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07 + i * 0.03;
-        const lfoGain = ctx.createGain(); lfoGain.gain.value = 0.12;
-        lfo.connect(lfoGain); lfoGain.connect(g.gain); lfo.start();
-        o.connect(g); g.connect(filter); o.start();
-      });
-      gain.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 3);
-      audioRef.current = { ctx, gain };
+        o.type = type;
+        o.frequency.setValueAtTime(f, t);
+        if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(vol, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        o.connect(g); g.connect(master);
+        o.start(t); o.stop(t + dur + 0.05);
+      };
+      const hat = (t: number, open = false) => {
+        const src = ctx.createBufferSource();
+        src.buffer = noiseBuf;
+        const hp = ctx.createBiquadFilter();
+        hp.type = "highpass"; hp.frequency.value = 7500;
+        const g = ctx.createGain();
+        const dur = open ? 0.18 : 0.05;
+        g.gain.setValueAtTime(open ? 0.09 : 0.06, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        src.connect(hp); hp.connect(g); g.connect(master);
+        src.start(t); src.stop(t + dur + 0.02);
+      };
+
+      let step = 0;
+      let nextT = ctx.currentTime + 0.1;
+      const sched = window.setInterval(() => {
+        if (ctx.state !== "running") return;
+        while (nextT < ctx.currentTime + 0.3) {
+          const bar = Math.floor(step / 16) % 4;
+          const s = step % 16;
+          const { root, chord } = prog[bar];
+          if (s % 4 === 0) tone(150, nextT, 0.12, "sine", 0.5, 48);            // kick
+          if (s % 2 === 1 || s % 16 === 14) hat(nextT, s % 8 === 6);            // hats
+          if (s % 2 === 0) tone(root, nextT, 0.18, "square", 0.07);             // bass 8ths
+          if (s === 2 || s === 7 || s === 10) chord.forEach((f) => tone(f, nextT, 0.14, "triangle", 0.08)); // skank
+          if (s % 2 === 0) tone(melody[(bar * 2 + s / 2) % 8], nextT, 0.2, "triangle", 0.1); // pluck
+          nextT += s16;
+          step++;
+        }
+      }, 80);
+
+      master.gain.linearRampToValueAtTime(0.06, ctx.currentTime + 2);
+      audioRef.current = { ctx, gain: master, sched };
     } catch { /* audio unsupported — video still plays silent */ }
   };
 

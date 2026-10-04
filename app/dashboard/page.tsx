@@ -48,10 +48,11 @@ const DEFAULT_CATS = [
 
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     // Per-account restore: browser cache first, then this account's server history.
     loadCachedAudit().then((data) => {
-      if (data?.url) { setAudit(data); return; }
+      if (data?.url) { setAudit(data); setReady(true); return; }
       fetch("/api/history")
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
@@ -61,7 +62,8 @@ export default function DashboardOverview() {
             saveCachedAudit(latest);
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setReady(true));
     });
   }, []);
 
@@ -91,6 +93,19 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6">
+      {!ready ? (
+        <div className="animate-pulse space-y-6" aria-label="Loading dashboard">
+          <div className="h-8 w-64 rounded-lg bg-white/10" />
+          <div className="grid gap-4 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="h-28 rounded-2xl bg-white/5 border border-white/10" />)}
+          </div>
+          <div className="h-72 rounded-2xl bg-white/5 border border-white/10" />
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[0, 1].map((i) => <div key={i} className="h-72 rounded-2xl bg-white/5 border border-white/10" />)}
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">AI visibility overview</h1>
@@ -258,7 +273,8 @@ export default function DashboardOverview() {
           <p className="mt-3 text-sm text-slate-500">No citations tracked yet — they appear here once prompt tracking runs.</p>
         )}
       </Card>
-
+      </>
+      )}
     </div>
   );
 }

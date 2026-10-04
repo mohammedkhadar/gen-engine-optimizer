@@ -41,12 +41,16 @@ export default function ContentPage() {
   // Derive buyer-question FAQs from the actual input text: split into
   // sentences, classify each by its signals (price, time, action, place,
   // proof), and turn the strongest matches into Q&As quoted from the source.
+  // Chrome (nav/login/cart/cookie boilerplate) is filtered first so it can
+  // never become an "answer"; price matches require a currency figure tied to
+  // pricing words, so testimonials like "$4M+ business" don't qualify.
+  const JUNK = /skip to content|log in|sign in|sign up|create account|shopping cart|\bcart\b|\bmenu\b|cookies|newsletter|subscribe|follow us|all rights reserved|terms of (service|use)|privacy policy/i;
   const buildFaqs = (raw: string) => {
     const sentences = raw
       .replace(/\s+/g, " ")
       .split(/(?<=[.!?])\s+/)
       .map((s) => s.trim())
-      .filter((s) => s.length > 20 && s.length < 400);
+      .filter((s) => s.length > 20 && s.length < 400 && !JUNK.test(s));
     type Hit = { q: string; a: string; rank: number };
     const hits: Hit[] = [];
     const seen = new Set<string>();
@@ -56,8 +60,8 @@ export default function ContentPage() {
       hits.push({ q, a: a.length > 220 ? a.slice(0, 217).trimEnd() + "…" : a, rank });
     };
     const has = (re: RegExp) => (s: string) => re.test(s);
-    const isPrice = has(/[$€£]\s?\d|%\s?(off|discount)|\b\d[\d,]*\s?(usd|eur|dollar)|\bprice|cost|pricing|per\s?(month|year|user)|free trial/i);
-    const isTime = has(/\b\d+\s?(minute|hour|day|week|month)s?\b|same-?day|24\s?\/\s?7|fast|quick|instant/i);
+    const isPrice = has(/([$€£]\s?\d[\d,.]*[^.]{0,50}(price|cost|pricing|plan|month|year|user|\/mo\b))|((price|cost|pricing|starting at)[^.]{0,50}[$€£]\s?\d)|(free trial|per (month|year|user)|\/mo\b|starting at \$)/i);
+    const isTime = has(/\b\d+\s?(minute|hour|day|week|month)s?\b|same-?day|24\s?\/\s?7|setup in|takes (only|just|less than)|get (started|going) in/i);
     const isAction = has(/\b(book|call|sign\s?up|start|try|visit|contact|order|schedule|download|get started)\b/i);
     const isPlace = has(/\bin\s+[A-Z][a-z]+|\b[A-Z][a-z]+\s?(city|town|area)\b|address|location|near me|open/i);
     const isProof = has(/★|stars?|reviews?|rated|trusted|award|certified|guarantee|years?/i);

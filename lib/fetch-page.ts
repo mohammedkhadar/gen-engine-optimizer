@@ -31,21 +31,32 @@ export async function fetchHtml(url: string, timeoutMs = 9000): Promise<{ html: 
   return { html: null as string | null, loadMs: Date.now() - started };
 }
 
+const CHROME_PATTERNS = /skip to content|log in|sign in|sign up|create account|shopping cart|\bcart\b|\bmenu\b|^search$|cookies|cookie policy|newsletter|subscribe|follow us|all rights reserved|terms of (service|use)|privacy policy/i;
+
 export function extractText(html: string, maxChars = 8000) {
   const title = /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
-  const body = html
+  // Prefer the main content landmark — nav/header/footer/aside are chrome.
+  const main =
+    /<main[\s>][\s\S]*?<\/main>/i.exec(html)?.[0] ??
+    /<article[\s>][\s\S]*?<\/article>/i.exec(html)?.[0] ??
+    html;
+  const body = main
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
     .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
-    .replace(/<header[\s\S]*?<\/header>/gi, " ");
+    .replace(/<header[\s\S]*?<\/header>/gi, " ")
+    .replace(/<aside[\s\S]*?<\/aside>/gi, " ");
   const text = body
     .replace(/<\/(h1|h2|h3|h4|p|li|tr|div|section|article)>/gi, "\n")
     .replace(/<[^>]+>/g, " ")
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")
     .trim();
-  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 25);
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 25 && !CHROME_PATTERNS.test(l));
   const joined = lines.join("\n");
   return { title, text: joined.slice(0, maxChars), truncated: joined.length > maxChars };
 }

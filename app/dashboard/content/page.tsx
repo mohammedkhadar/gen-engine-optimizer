@@ -176,7 +176,7 @@ export default function ContentPage() {
           </Card>
           <Card>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">FAQPage JSON-LD schema</h3>
+              <h3 className="font-semibold">FAQ Page JSON-LD schema</h3>
               <button onClick={() => copy("schema", JSON.stringify(out.schema, null, 2))} className="text-xs text-slate-400 hover:text-white flex gap-1 items-center">
                 {copied === "schema" ? <Check size={13} /> : <Copy size={13} />} Copy JSON
               </button>

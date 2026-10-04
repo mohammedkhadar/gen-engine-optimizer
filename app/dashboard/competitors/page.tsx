@@ -92,7 +92,7 @@ export default function CompetitorsPage() {
           </button>
         </div>
         <div className="mt-3">
-          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Rivals ({rivals.length}/8)</div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Competitors ({rivals.length}/8)</div>
           <div className="flex flex-wrap gap-2">
             {rivals.map((r) => (
               <span key={r} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs">
@@ -103,7 +103,7 @@ export default function CompetitorsPage() {
           </div>
           <div className="mt-2 flex gap-2">
             <input value={newRival} onChange={(e) => setNewRival(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addRival()}
-              placeholder="Add rival brand + Enter"
+              placeholder="Add competitor brand + Enter"
               className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/60" />
             <button onClick={addRival} className="flex items-center gap-1 rounded-xl border border-white/15 px-4 py-2 text-sm hover:bg-white/5">
               <Plus size={14} /> Add

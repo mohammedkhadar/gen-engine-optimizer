@@ -408,17 +408,21 @@ export default function VideoPage() {
         release(2000);
       }
     }, 250));
-    // Recovery: if the engine claims "speaking" for 10s with zero word events,
-    // the speech queue is wedged (a Chrome failure mode cancel() can't clear
-    // from outside). Nuke it and re-run this scene's narration, max twice —
-    // then advance rather than hang forever.
+    // Recovery: engine claims "speaking" for 10s with zero word events, or
+    // utterances sit "pending" unstarted — the speech queue is wedged (a
+    // browser failure mode cancel() can't clear from outside). Nuke it and
+    // re-run this scene's narration, max twice — then advance silently
+    // rather than hang forever.
     intervals.push(window.setInterval(() => {
       if (released || Date.now() - bornAt < 10000) return;
-      if (window.speechSynthesis.speaking && boundaryRef.current === 0 && retriesRef.current < 2) {
+      const s = window.speechSynthesis;
+      const wedged = (s.speaking || s.pending) && boundaryRef.current === 0;
+      if (!wedged) return;
+      if (retriesRef.current < 2) {
         retriesRef.current++;
-        try { window.speechSynthesis.cancel(); } catch {}
+        try { s.cancel(); } catch {}
         window.setTimeout(() => setRetryKey((k) => k + 1), 400);
-      } else if (window.speechSynthesis.speaking && boundaryRef.current === 0 && retriesRef.current >= 2) {
+      } else {
         release(500);
       }
     }, 1000));

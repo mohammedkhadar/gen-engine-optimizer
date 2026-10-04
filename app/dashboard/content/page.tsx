@@ -4,7 +4,7 @@ import { Card, Badge } from "@/components/ui";
 import { Copy, Check, Wand2, Download, FileText, Loader2 } from "lucide-react";
 
 export default function ContentPage() {
-  const [input, setInput] = useState("Acme Dental Studio offers teeth whitening in Austin. We have good prices and friendly staff. Book today.");
+  const [input, setInput] = useState("");
   const [out, setOut] = useState<any>(null);
   const [copied, setCopied] = useState("");
   const [llmsBrand, setLlmsBrand] = useState("Acme");
@@ -72,8 +72,9 @@ export default function ContentPage() {
       <Card>
         <label className="text-sm font-medium">Paste your page copy</label>
         <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={5}
-          className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm outline-none focus:border-violet-500/60" />
-        <button onClick={optimize} className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-500 px-5 py-2.5 text-sm font-semibold">
+          placeholder="e.g. Acme Dental Studio offers teeth whitening in Austin. We have good prices and friendly staff. Book today."
+          className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm outline-none placeholder:text-slate-600 focus:border-violet-500/60" />
+        <button onClick={optimize} disabled={!input.trim()} className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-500 px-5 py-2.5 text-sm font-semibold disabled:opacity-40">
           <Wand2 size={15} /> Optimize for AI citations
         </button>
       </Card>

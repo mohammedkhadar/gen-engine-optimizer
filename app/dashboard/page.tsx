@@ -48,6 +48,8 @@ export default function DashboardOverview() {
       <g
         transform={`translate(${x},${y})`}
         onClick={(e) => { e.stopPropagation(); setLabelPopup(k); }}
+        onMouseEnter={() => { if (info) setLabelPopup(k); }}
+        onMouseLeave={() => setLabelPopup(null)}
         style={{ cursor: info ? "pointer" : "default" }}
       >
         {info && <title>{`${info.full} — tap for details`}</title>}
@@ -135,7 +137,7 @@ export default function DashboardOverview() {
         <Card className="relative">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">GEO pillars radar</h3>
-            <span className="text-[11px] text-slate-500">tap a label&apos;s ? for meaning</span>
+            <span className="text-[11px] text-slate-500">hover or tap a label&apos;s ? for meaning</span>
           </div>
           <div className="mt-2 h-64">
             <ResponsiveContainer width="100%" height="100%">

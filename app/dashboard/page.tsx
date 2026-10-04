@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
-import { TrendingUp, Bell, Plus } from "lucide-react";
+import { TrendingUp, Bell, Plus, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -18,17 +18,43 @@ const engineShare = [
   { engine: "Copilot", you: 61, avg: 53 },
 ];
 
+const SHORT: Record<string, string> = {
+  "Crawlability & Technical": "Crawl",
+  "Structured Data & Machine Readability": "Schema",
+  "E-E-A-T & Trust": "E-E-A-T",
+  "Answer-Ready Content": "Answer",
+  "Freshness & Reputation": "Fresh",
+  "Citability & Evidence": "Cite",
+};
+
+const PILLAR_INFO: Record<string, { what: string; fix: string }> = {
+  Crawl: { what: "Can AI bots reach, load and render your pages? Title tags, meta descriptions, speed, and AI crawlers allowed in robots.txt.", fix: "Allow GPTBot/PerplexityBot/ClaudeBot, keep TTFB < 800ms, no JS-only content." },
+  Schema: { what: "Machine-readable facts via JSON-LD (Organization, FAQPage, Article). Lets engines parse with certainty instead of guessing.", fix: "Add the schema bundle — highest-leverage fix (+12–18 pts)." },
+  "E-E-A-T": { what: "Do engines trust you? Author bylines with credentials, publish dates, stats, and links to primary sources.", fix: "Add bios, dates, and 3+ outbound citations per key page." },
+  Answer: { what: "Is your content shaped like quotable answers? 40–60 word TL;DR up top, question-style headings, bullets and tables.", fix: "Lead every page with a direct answer block + 5 Q&A headings." },
+  Fresh: { what: "Do you look current and talked-about? Update dates, fresh edits, reviews and third-party mentions (Reddit, G2).", fix: "Refresh top pages every 60–90 days with a changelog note." },
+  Cite: { what: "Is there anything shaped like a quotable fact? Stats, one-liners, tables and expert quotes answers can lift with a link.", fix: "One stat + source link per section, quotable takeaways." },
+};
+
+const DEFAULT_CATS = [
+  { label: "Crawlability & Technical", score: 72 },
+  { label: "Structured Data & Machine Readability", score: 44 },
+  { label: "E-E-A-T & Trust", score: 68 },
+  { label: "Answer-Ready Content", score: 81 },
+  { label: "Freshness & Reputation", score: 60 },
+  { label: "Citability & Evidence", score: 57 },
+];
+
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
+  const [openPillar, setOpenPillar] = useState<string | null>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
     if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
   }, []);
 
-  const radar = audit?.categories?.map((c: any) => ({ k: c.label.split(" ")[0], v: c.score })) ?? [
-    { k: "Crawl", v: 72 }, { k: "Schema", v: 44 }, { k: "E-E-A-T", v: 68 },
-    { k: "Answer", v: 81 }, { k: "Fresh", v: 60 }, { k: "Cite", v: 57 },
-  ];
+  const cats: { label: string; score: number }[] = audit?.categories ?? DEFAULT_CATS;
+  const radar = cats.map((c: any) => ({ k: SHORT[c.label] ?? c.label.split(" ")[0], v: c.score }));
 
   return (
     <div className="space-y-6">
@@ -109,6 +135,32 @@ export default function DashboardOverview() {
                 <ReRadar dataKey="v" stroke="#34d399" fill="#34d399" fillOpacity={0.25} />
               </RadarChart>
             </ResponsiveContainer>
+          </div>
+          <div className="mt-2 space-y-1.5 border-t border-white/10 pt-3">
+            <div className="text-[11px] uppercase tracking-widest text-slate-500">Tap ? for what each pillar means</div>
+            {cats.map((c: any) => {
+              const k: string = SHORT[c.label] ?? c.label;
+              const info = PILLAR_INFO[k];
+              const open = openPillar === k;
+              return (
+                <div key={k} className="rounded-xl bg-white/[0.03]">
+                  <button
+                    onClick={() => setOpenPillar(open ? null : k)}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                  >
+                    <span className="font-medium text-slate-200">{k}</span>
+                    <Badge tone={c.score >= 75 ? "green" : c.score >= 55 ? "amber" : "red"}>{c.score}</Badge>
+                    <HelpCircle size={15} className={`ml-auto shrink-0 ${open ? "text-violet-300" : "text-slate-500"}`} />
+                  </button>
+                  {open && info && (
+                    <div className="px-3 pb-3 text-xs leading-relaxed text-slate-400">
+                      <p>{info.what}</p>
+                      <p className="mt-1 text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{info.fix}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Card>
       </div>

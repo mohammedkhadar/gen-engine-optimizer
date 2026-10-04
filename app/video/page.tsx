@@ -321,14 +321,18 @@ export default function VideoPage() {
   const speakScene = (i: number) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return () => {};
     const text = SCENES[i].narration;
+    // Refresh the voice list synchronously — a stale/empty cached list makes
+    // Chrome queue the utterance forever (music keeps playing, voice missing).
+    const fresh = window.speechSynthesis.getVoices();
+    if (fresh.length) setVoices(fresh);
+    const en = (fresh.length ? fresh : voices).filter((v) => v.lang.toLowerCase().startsWith("en"));
+    if (!en.length) return () => {}; // no TTS voices in this browser: stay silent, don't jam the queue
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const en = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
     // Prefer warm, natural voices; skip robotic ones (eSpeak, legacy desktop).
     const robotic = /espeak|whisper|fred|ralph|bulbul| Reed |rocko| Shelley |junior|kathy/i;
     const natural = en.filter((v) => !robotic.test(v.name));
     const pool = natural.length ? natural : en;
-    u.voice =
+    const pick =
       pool.find((v) => v.voiceURI === voiceURI) ??
       pool.find((v) => /google us english/i.test(v.name)) ??
       pool.find((v) => /samantha/i.test(v.name)) ??
@@ -337,9 +341,6 @@ export default function VideoPage() {
       pool.find((v) => /zira|susan|zira/i.test(v.name)) ??
       pool[0] ??
       null;
-    // Friendly-professional delivery: unhurried pace, slight warmth in pitch.
-    u.rate = 0.98;
-    u.pitch = 1.05;
     speakingRef.current = true;
     let released = false;
     let started = false;
@@ -358,10 +359,34 @@ export default function VideoPage() {
         if (idxRef.current === i) setT(Math.max(0, endAt - 0.8));
       }, delay));
     };
-    u.onstart = () => { started = true; lastBoundary = Date.now(); boundaryRef.current = lastBoundary; bornRef.current = bornAt; };
-    u.onboundary = () => { lastBoundary = Date.now(); boundaryRef.current = lastBoundary; };
-    u.onend = () => release(1200);
-    u.onerror = () => release(500);
+    const markStart = () => { started = true; lastBoundary = Date.now(); boundaryRef.current = lastBoundary; bornRef.current = bornAt; };
+    const markBoundary = () => { lastBoundary = Date.now(); boundaryRef.current = lastBoundary; };
+    // Chunk into sentences: each utterance stays well under Chrome's ~15s
+    // cutoff, and a dropped chunk can't kill the rest of the narration.
+    const parts = text.match(/[^.!?]+[.!?]+/g)?.map((s) => s.trim()).filter(Boolean) ?? [text];
+    let pi = 0;
+    const speakNext = (): void => {
+      if (pi >= parts.length) return;
+      const u = new SpeechSynthesisUtterance(parts[pi]);
+      u.voice = pick;
+      // Friendly-professional delivery: unhurried pace, slight warmth in pitch.
+      u.rate = 0.98;
+      u.pitch = 1.05;
+      u.onstart = markStart;
+      u.onboundary = markBoundary;
+      u.onend = () => {
+        pi++;
+        if (pi >= parts.length) release(1200);
+        else speakNext();
+      };
+      u.onerror = () => {
+        pi++;
+        if (pi >= parts.length) release(500);
+        else speakNext();
+      };
+      window.speechSynthesis.speak(u);
+    };
+    speakNext();
     // Primary end detection: word-boundary events stop the instant audio stops.
     // Keyed on the events themselves (not onstart, which some browsers never
     // fire even while audio plays). If this browser emits no boundary events
@@ -379,7 +404,6 @@ export default function VideoPage() {
     timers.push(window.setTimeout(() => release(0), estMs));
     // Absolute failsafe: never freeze longer than 90s.
     timers.push(window.setTimeout(() => { released = true; speakingRef.current = false; }, 90000));
-    window.speechSynthesis.speak(u);
     return () => {
       timers.forEach((id) => clearTimeout(id));
       intervals.forEach((id) => clearInterval(id));

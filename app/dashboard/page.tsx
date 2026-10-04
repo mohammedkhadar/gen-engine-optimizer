@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
-import { TrendingUp, Bell, Plus, X } from "lucide-react";
+import { TrendingUp, Bell, Plus } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -47,7 +47,6 @@ const DEFAULT_CATS = [
 
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
-  const [pinned, setPinned] = useState<string | null>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
     if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
@@ -75,36 +74,6 @@ export default function DashboardOverview() {
       </div>
     );
   };
-
-  // Axis label with "?" badge after the text, anchored by chart side so the
-  // pair never overlaps the polygon. Tapping toggles a pinned tooltip.
-  const AxisLabel = ({ x, y, cx, cy, payload }: any) => {
-    const k: string = payload?.value ?? "";
-    const info = PILLAR_INFO[k];
-    const side = x > (cx ?? 0) + 4 ? "right" : x < (cx ?? 0) - 4 ? "left" : "middle";
-    const w = k.length * 6.3;
-    const anchor = side === "right" ? "start" : side === "left" ? "end" : "middle";
-    const textX = side === "middle" ? -13.5 : 0;
-    const badgeX = side === "right" ? w + 18.5 : side === "left" ? -(w + 18.5) : w / 2 + 5;
-    return (
-      <g
-        transform={`translate(${x},${y})`}
-        onClick={(e) => { e.stopPropagation(); setPinned((p) => (p === k ? null : k)); }}
-        style={{ cursor: info ? "pointer" : "default" }}
-      >
-        {info && <title>{info.full}</title>}
-        <text textAnchor={anchor} x={textX} dy={4} fill="#94a3b8" fontSize={11}>{k}</text>
-        {info && (
-          <>
-            <circle cx={badgeX} cy={0} r={8.5} fill="rgba(139,92,246,0.18)" stroke="#8b5cf6" strokeWidth={1.2} />
-            <text textAnchor="middle" x={badgeX} dy={3.5} fill="#c4b5fd" fontSize={10} fontWeight="bold">?</text>
-          </>
-        )}
-      </g>
-    );
-  };
-  const pinnedInfo = pinned ? PILLAR_INFO[pinned] : null;
-  const pinnedScore = pinned ? (radar.find((d: any) => d.k === pinned)?.v ?? 0) : 0;
 
   return (
     <div className="space-y-6">
@@ -175,36 +144,21 @@ export default function DashboardOverview() {
             </ResponsiveContainer>
           </div>
         </Card>
-        <Card className="relative">
+        <Card>
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">GEO pillars radar</h3>
-            <span className="text-[11px] text-slate-500">hover the chart · tap ? to pin</span>
+            <span className="text-[11px] text-slate-500">hover the chart for meaning</span>
           </div>
           <div className="mt-2 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radar}>
                 <PolarGrid stroke="rgba(255,255,255,0.15)" />
-                <PolarAngleAxis dataKey="k" tick={<AxisLabel />} />
+                <PolarAngleAxis dataKey="k" tick={{ fill: "#94a3b8", fontSize: 11 }} />
                 <ReRadar dataKey="v" stroke="#34d399" fill="#34d399" fillOpacity={0.25} />
                 <Tooltip content={<PillarTip />} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
-          {pinnedInfo && (
-            <div className="absolute left-1/2 top-2 z-10 w-64 -translate-x-1/2 rounded-xl border border-violet-500/40 bg-[#141B2E]/95 p-3 shadow-2xl">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs font-semibold text-violet-200">{pinnedInfo.full}</div>
-                <div className="flex items-center gap-1.5">
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white">{pinnedScore}</span>
-                  <button onClick={() => setPinned(null)} className="rounded-full p-0.5 text-slate-400 hover:bg-white/10 hover:text-white">
-                    <X size={13} />
-                  </button>
-                </div>
-              </div>
-              <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{pinnedInfo.what}</p>
-              <p className="mt-1 text-[11px] text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{pinnedInfo.fix}</p>
-            </div>
-          )}
         </Card>
       </div>
 

@@ -21,10 +21,7 @@ function Spark({ data, w = 90, h = 26 }: { data: number[]; w?: number; h?: numbe
 export default function CompetitorsPage() {
   const [brand, setBrand] = useState("Acme");
   const [domain, setDomain] = useState("acme.com");
-  const [rivals, setRivals] = useState<{ name: string; domain: string }[]>([
-    { name: "Competitor A", domain: "competitor-a.com" },
-    { name: "Competitor B", domain: "competitor-b.com" },
-  ]);
+  const [rivals, setRivals] = useState<{ name: string; domain: string }[]>([]);
   const [newName, setNewName] = useState("");
   const [newDomain, setNewDomain] = useState("");
   const [editName, setEditName] = useState<string | null>(null);
@@ -38,7 +35,8 @@ export default function CompetitorsPage() {
       if (saved) {
         const p = JSON.parse(saved);
         if (Array.isArray(p.rivals)) {
-          // migrate legacy string[] entries + backfill placeholder domains
+          // migrate legacy string[] entries + backfill placeholder domains,
+          // dropping the old demo placeholders entirely
           const PLACEHOLDERS: Record<string, string> = {
             "competitor a": "competitor-a.com",
             "competitor b": "competitor-b.com",
@@ -49,7 +47,7 @@ export default function CompetitorsPage() {
               entry.domain = PLACEHOLDERS[entry.name.toLowerCase()];
             }
             return entry;
-          }).filter((r: any) => r.name);
+          }).filter((r: any) => r.name && !(r.name === "Competitor A" || r.name === "Competitor B"));
           setRivals(migrated);
           if (JSON.stringify(migrated) !== JSON.stringify(p.rivals)) {
             localStorage.setItem(LS_KEY, JSON.stringify({ rivals: migrated, brand: p.brand, domain: p.domain }));

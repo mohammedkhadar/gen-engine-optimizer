@@ -339,6 +339,7 @@ export default function VideoPage() {
     speakingRef.current = true;
     let released = false;
     let started = false;
+    let lastBoundary = 0;
     const bornAt = Date.now();
     const timers: number[] = [];
     const intervals: number[] = [];
@@ -347,14 +348,19 @@ export default function VideoPage() {
       released = true;
       timers.push(window.setTimeout(() => { speakingRef.current = false; }, delay));
     };
-    u.onstart = () => { started = true; };
+    u.onstart = () => { started = true; lastBoundary = Date.now(); };
+    u.onboundary = () => { lastBoundary = Date.now(); };
     u.onend = () => release(2000);
     u.onerror = () => release(500);
-    // Primary end detection: poll the engine state (flips promptly even when
-    // the end event lags). Guarded by onstart + minimum airtime so the
-    // pre-speech moment can't false-trigger.
+    // Primary end detection: word-boundary events stop the instant audio stops.
+    // If 1.6s pass with no boundary (after 3s airtime), speech is over — release
+    // with a short beat since silence already elapsed.
     intervals.push(window.setInterval(() => {
-      if (started && Date.now() - bornAt > 2000 && !window.speechSynthesis.speaking) {
+      const quietFor = Date.now() - lastBoundary;
+      if (started && Date.now() - bornAt > 3000 && quietFor > 1600) {
+        started = false;
+        release(1000);
+      } else if (started && Date.now() - bornAt > 3000 && !window.speechSynthesis.speaking) {
         started = false;
         release(2000);
       }

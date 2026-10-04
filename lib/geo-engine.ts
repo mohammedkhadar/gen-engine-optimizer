@@ -2,6 +2,8 @@
 // Deterministic + explainable: combines real fetched signals with heuristics
 // so the MVP works end-to-end without LLM API keys.
 
+import { extractContentLines } from "./fetch-page";
+
 export type AuditCategory = {
   key: string;
   label: string;
@@ -48,7 +50,9 @@ function clamp(n: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-// Lightweight HTML signal extraction (no deps)
+// Lightweight HTML signal extraction (no deps). Word count comes from the
+// shared content pipeline (fetch-page), so the audit and the optimizer
+// always agree on how much readable text a page has.
 export function extractSignals(html: string) {
   const lower = html.toLowerCase();
   const title = /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
@@ -56,13 +60,8 @@ export function extractSignals(html: string) {
     /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i.exec(html)?.[1] ??
     /<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i.exec(html)?.[1] ??
     "";
-  const text = html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const wordCount = text ? text.split(" ").length : 0;
+  const text = extractContentLines(html).join("\n");
+  const wordCount = text ? text.split(/\s+/).length : 0;
   const headings = (html.match(/<h[1-6][\s>]/gi) || []).length;
   const images = (html.match(/<img[\s>]/gi) || []).length;
   const links = (html.match(/<a[\s>]/gi) || []).length;

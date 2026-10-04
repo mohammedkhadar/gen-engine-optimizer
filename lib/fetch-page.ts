@@ -33,8 +33,7 @@ export async function fetchHtml(url: string, timeoutMs = 9000): Promise<{ html: 
 
 const CHROME_PATTERNS = /skip to content|log in|sign in|sign up|create account|shopping cart|\bcart\b|\bmenu\b|^search$|cookies|cookie policy|newsletter|subscribe|follow us|all rights reserved|terms of (service|use)|privacy policy/i;
 
-export function extractText(html: string, maxChars = 8000) {
-  const title = /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
+export function extractContentLines(html: string): string[] {
   // Prefer the main content landmark — nav/header/footer/aside are chrome.
   const main =
     /<main[\s>][\s\S]*?<\/main>/i.exec(html)?.[0] ??
@@ -53,10 +52,14 @@ export function extractText(html: string, maxChars = 8000) {
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n")
     .trim();
-  const lines = text
+  return text
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 25 && !CHROME_PATTERNS.test(l));
-  const joined = lines.join("\n");
+}
+
+export function extractText(html: string, maxChars = 8000) {
+  const title = /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
+  const joined = extractContentLines(html).join("\n");
   return { title, text: joined.slice(0, maxChars), truncated: joined.length > maxChars };
 }

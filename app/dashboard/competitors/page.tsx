@@ -21,8 +21,12 @@ function Spark({ data, w = 90, h = 26 }: { data: number[]; w?: number; h?: numbe
 export default function CompetitorsPage() {
   const [brand, setBrand] = useState("Acme");
   const [domain, setDomain] = useState("acme.com");
-  const [rivals, setRivals] = useState<string[]>(["Competitor A", "Competitor B"]);
-  const [newRival, setNewRival] = useState("");
+  const [rivals, setRivals] = useState<{ name: string; domain: string }[]>([
+    { name: "Competitor A", domain: "competitor-a.com" },
+    { name: "Competitor B", domain: "competitor-b.com" },
+  ]);
+  const [newName, setNewName] = useState("");
+  const [newDomain, setNewDomain] = useState("");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -31,26 +35,31 @@ export default function CompetitorsPage() {
       const saved = localStorage.getItem(LS_KEY);
       if (saved) {
         const p = JSON.parse(saved);
-        if (Array.isArray(p.rivals)) setRivals(p.rivals);
+        if (Array.isArray(p.rivals)) {
+          // migrate legacy string[] entries
+          setRivals(p.rivals.map((r: any) => (typeof r === "string" ? { name: r, domain: "" } : { name: r.name ?? "", domain: r.domain ?? "" })).filter((r: any) => r.name));
+        }
         if (p.brand) setBrand(p.brand);
         if (p.domain) setDomain(p.domain);
       }
     } catch {}
   }, []);
 
-  const persist = (r: string[], b = brand, d = domain) => {
+  const persist = (r: { name: string; domain: string }[], b = brand, d = domain) => {
     localStorage.setItem(LS_KEY, JSON.stringify({ rivals: r, brand: b, domain: d }));
   };
 
+  const cleanDomain = (v: string) => v.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
   const addRival = () => {
-    const name = newRival.trim();
-    if (!name || rivals.some((r) => r.toLowerCase() === name.toLowerCase()) || rivals.length >= 8) return;
-    const next = [...rivals, name];
-    setRivals(next); setNewRival(""); persist(next);
+    const name = newName.trim();
+    if (!name || rivals.some((r) => r.name.toLowerCase() === name.toLowerCase()) || rivals.length >= 8) return;
+    const next = [...rivals, { name, domain: cleanDomain(newDomain) }];
+    setRivals(next); setNewName(""); setNewDomain(""); persist(next);
   };
 
   const removeRival = (name: string) => {
-    const next = rivals.filter((r) => r !== name);
+    const next = rivals.filter((r) => r.name !== name);
     setRivals(next); persist(next);
   };
 
@@ -95,17 +104,21 @@ export default function CompetitorsPage() {
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Competitors ({rivals.length}/8)</div>
           <div className="flex flex-wrap gap-2">
             {rivals.map((r) => (
-              <span key={r} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs">
-                {r}
-                <button onClick={() => removeRival(r)} className="text-slate-500 hover:text-red-300"><X size={13} /></button>
+              <span key={r.name} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs">
+                <span className="font-medium">{r.name}</span>
+                {r.domain && <span className="text-slate-500">{r.domain}</span>}
+                <button onClick={() => removeRival(r.name)} className="text-slate-500 hover:text-red-300"><X size={13} /></button>
               </span>
             ))}
           </div>
-          <div className="mt-2 flex gap-2">
-            <input value={newRival} onChange={(e) => setNewRival(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addRival()}
-              placeholder="Add competitor brand + Enter"
-              className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/60" />
-            <button onClick={addRival} className="flex items-center gap-1 rounded-xl border border-white/15 px-4 py-2 text-sm hover:bg-white/5">
+          <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addRival()}
+              placeholder="Company name"
+              className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/60" />
+            <input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addRival()}
+              placeholder="Website (competitor.com)"
+              className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/60" />
+            <button onClick={addRival} className="flex items-center justify-center gap-1 rounded-xl border border-white/15 px-4 py-2 text-sm hover:bg-white/5">
               <Plus size={14} /> Add
             </button>
           </div>

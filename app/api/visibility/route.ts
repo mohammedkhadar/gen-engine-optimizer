@@ -26,8 +26,19 @@ export async function POST(req: NextRequest) {
   const avgVisibility = Math.round(tests.reduce((a, t) => a + t.visibility, 0) / tests.length);
 
   // User-defined comparison table: you + each named rival, same methodology.
-  const rivals: string[] = Array.isArray(rivalNames) ? rivalNames.map(String).filter(Boolean).slice(0, 8) : [];
-  const comparison = [brandStats(b, d), ...rivals.filter((r) => r.toLowerCase() !== b.toLowerCase()).map((r) => brandStats(r))];
+  const rivals: (string | { name?: string; domain?: string })[] = Array.isArray(rivalNames) ? rivalNames.slice(0, 8) : [];
+  const rivalStats = rivals
+    .map((r) => {
+      if (typeof r === "string") return { name: r, domain: undefined as string | undefined };
+      return { name: String(r.name ?? ""), domain: r.domain ? String(r.domain) : undefined };
+    })
+    .filter((r) => r.name.trim());
+  const comparison = [
+    brandStats(b, d),
+    ...rivalStats
+      .filter((r) => r.name.toLowerCase() !== b.toLowerCase())
+      .map((r) => brandStats(r.name, r.domain)),
+  ];
 
   // Persist prompt runs when DB configured (best-effort).
   try {

@@ -321,12 +321,18 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary.", link: GEN, linkLabel: "Generate my llms.txt →" },
   ];
 
-  // Thin/walled pages: generic content fixes don't apply — lead with guidance
-  // to audit a real content page instead.
+  // Thin/walled pages: page-content fixes (excerpts, comparisons, authorship)
+  // can't apply without readable content — lead with re-audit guidance and
+  // keep only site-level actions (schema, crawlers, off-page mentions).
+  const SITE_LEVEL = new Set([
+    "Add schema bundle (JSON-LD)",
+    "Publish llms.txt & allow AI bots",
+    "Earn 5 third-party mentions",
+  ]);
   const ranked = thinPage
     ? [
         { title: "Audit a content-rich page instead", impact: "first step", effort: "2 min", detail: "This URL has almost no readable text (login wall, JS-only app, or portal homepage). Run the audit on a real content page — pricing, docs, or a guide — to get fixes that apply.", link: "/dashboard/audit?fresh=1", linkLabel: "Audit another page →" },
-        ...topActions,
+        ...topActions.filter((a) => SITE_LEVEL.has(a.title)),
       ].slice(0, 5)
     : topActions.slice(0, 5);
 

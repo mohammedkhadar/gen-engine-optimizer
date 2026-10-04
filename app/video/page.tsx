@@ -317,8 +317,8 @@ export default function VideoPage() {
     u.rate = 1.02;
     speakingRef.current = true;
     const done = () => {
-      // small beat after the last word before the scene moves on
-      setTimeout(() => { speakingRef.current = false; }, 450);
+      // beat after the last word before the scene moves on
+      setTimeout(() => { speakingRef.current = false; }, 2000);
     };
     u.onend = done;
     u.onerror = done;

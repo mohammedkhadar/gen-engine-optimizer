@@ -11,7 +11,7 @@ const FRIENDLY: Record<string, string> = {
   Configuration: "Auth is misconfigured on the server.",
 };
 
-export function SignInButton() {
+export function SignInButton({ signup }: { signup?: boolean }) {
   const [busy, setBusy] = useState(false);
   const params = useSearchParams();
   const err = params.get("error");
@@ -29,7 +29,7 @@ export function SignInButton() {
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 font-semibold text-black hover:bg-slate-200 disabled:opacity-60"
       >
         {busy && <Loader2 size={15} className="animate-spin" />}
-        {busy ? "Redirecting to Google…" : "Sign in with Google →"}
+        {busy ? "Redirecting to Google…" : signup ? "Continue with Google — it's free" : "Sign in with Google →"}
       </button>
       <p className="mt-3 text-xs text-slate-500">You&apos;ll return directly to the dashboard.</p>
     </div>

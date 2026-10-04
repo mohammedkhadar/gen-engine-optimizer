@@ -126,7 +126,6 @@ export default function DashboardOverview() {
           <div className="mt-3"><ScoreRing score={audit?.overall ?? 63} /></div>
           <div className="mt-2 w-full truncate text-sm text-slate-400" title={audit?.url ?? "acme.com"}>Grade {audit?.grade ?? "C"} · {audit?.url ?? "acme.com"}</div>
           <Link href={audit?.url ? `/dashboard/audit?url=${encodeURIComponent(audit.url)}` : "/dashboard/audit"} className="mt-4 text-sm font-medium text-violet-300 hover:text-violet-200">View full audit →</Link>
-          <Link href={audit?.url ? `/dashboard/audit?url=${encodeURIComponent(audit.url)}#fixes` : "/dashboard/audit#fixes"} className="mt-1 text-xs text-slate-400 hover:text-slate-200">Skip to fixes →</Link>
         </Card>
       </div>
 

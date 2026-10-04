@@ -142,7 +142,7 @@ function AuditInner() {
               </div>
             </Card>
             <Card>
-              <h3 id="fixes" className="font-semibold scroll-mt-24">Top 5 priority actions</h3>
+              <h3 className="font-semibold">Top 5 priority actions</h3>
               <div className="mt-3 space-y-2">
                 {result.topActions.map((a: any, i: number) => (
                   <div key={i} className="rounded-xl border border-white/10 bg-black/30 p-3">

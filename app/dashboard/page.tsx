@@ -89,18 +89,25 @@ export default function DashboardOverview() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
-        {[
-          { l: "GEO Visibility Score", v: audit?.overall ?? 63, d: "+6 this week", tone: "violet" as const },
-          { l: "AI Mentions (7d)", v: "1,284", d: "+12.4%", tone: "green" as const },
-          { l: "Citation Rate", v: "61%", d: "+4 pts", tone: "blue" as const },
-          { l: "Prompts Won", v: "38/52", d: "73% win rate", tone: "amber" as const },
-        ].map((s) => (
-          <Card key={s.l}>
-            <div className="text-xs text-slate-400">{s.l}</div>
-            <div className="mt-1 text-3xl font-extrabold">{s.v}</div>
-            <div className="mt-1 text-xs text-emerald-300 flex items-center gap-1"><TrendingUp size={12} /> {s.d}</div>
-          </Card>
-        ))}
+        {(() => {
+          const score = audit?.overall ?? 63;
+          const tone = score >= 75 ? "emerald" : score >= 55 ? "amber" : "red";
+          const text = tone === "emerald" ? "text-emerald-300" : tone === "amber" ? "text-amber-300" : "text-red-300";
+          const ring = tone === "emerald" ? "border-emerald-500/40 bg-emerald-500/[0.07]" : tone === "amber" ? "border-amber-500/40 bg-amber-500/[0.07]" : "border-red-500/40 bg-red-500/[0.07]";
+          const items = [
+            { l: "GEO Visibility Score", v: score, d: "+6 this week", hot: true },
+            { l: "AI Mentions (7d)", v: "1,284", d: "+12.4%" },
+            { l: "Citation Rate", v: "61%", d: "+4 pts" },
+            { l: "Prompts Won", v: "38/52", d: "73% win rate" },
+          ];
+          return items.map((s) => (
+            <Card key={s.l} className={s.hot ? ring : ""}>
+              <div className="text-xs text-slate-400">{s.l}</div>
+              <div className={`mt-1 text-3xl font-extrabold ${s.hot ? text : ""}`}>{s.v}</div>
+              <div className="mt-1 text-xs text-emerald-300 flex items-center gap-1"><TrendingUp size={12} /> {s.d}</div>
+            </Card>
+          ));
+        })()}
       </div>
 
       <Card className="border-emerald-500/30 ring-1 ring-emerald-500/20">

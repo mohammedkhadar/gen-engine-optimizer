@@ -65,6 +65,7 @@ export default function DashboardOverview() {
 
   const cats: { label: string; score: number }[] = audit?.categories ?? DEFAULT_CATS;
   const radar = cats.map((c: any) => ({ k: SHORT[c.label] ?? c.label.split(" ")[0], v: c.score }));
+  const hasData = !!audit;
 
   // Custom tooltip: hovering any radar vertex explains that pillar —
   // name, score, what it measures, and its top fix.
@@ -101,37 +102,44 @@ export default function DashboardOverview() {
 
       <div className="grid gap-4 md:grid-cols-4">
         {(() => {
-          const score = audit?.overall ?? 63;
-          const tone = score >= 75 ? "emerald" : score >= 55 ? "amber" : "red";
-          const text = tone === "emerald" ? "text-emerald-300" : tone === "amber" ? "text-amber-300" : "text-red-300";
-          const ring = tone === "emerald" ? "border-emerald-500/40 bg-emerald-500/[0.07]" : tone === "amber" ? "border-amber-500/40 bg-amber-500/[0.07]" : "border-red-500/40 bg-red-500/[0.07]";
+          const score = audit?.overall;
+          const tone = score == null ? "none" : score >= 75 ? "emerald" : score >= 55 ? "amber" : "red";
+          const text = tone === "emerald" ? "text-emerald-300" : tone === "amber" ? "text-amber-300" : tone === "red" ? "text-red-300" : "text-slate-500";
+          const ring = tone === "emerald" ? "border-emerald-500/40 bg-emerald-500/[0.07]" : tone === "amber" ? "border-amber-500/40 bg-amber-500/[0.07]" : tone === "red" ? "border-red-500/40 bg-red-500/[0.07]" : "";
           const items = [
-            { l: "GEO Visibility Score", v: score, d: "+6 this week", hot: true },
-            { l: "AI Mentions (7d)", v: "1,284", d: "+12.4%" },
-            { l: "Citation Rate", v: "61%", d: "+4 pts" },
-            { l: "Prompts Won", v: "38/52", d: "73% win rate" },
+            { l: "GEO Visibility Score", v: score ?? "—", d: hasData ? "+6 this week" : "No audit yet", hot: true },
+            { l: "AI Mentions (7d)", v: hasData ? "1,284" : "—", d: hasData ? "+12.4%" : "No data yet" },
+            { l: "Citation Rate", v: hasData ? "61%" : "—", d: hasData ? "+4 pts" : "No data yet" },
+            { l: "Prompts Won", v: hasData ? "38/52" : "—", d: hasData ? "73% win rate" : "No data yet" },
           ];
           return items.map((s) => (
             <Card key={s.l} className={s.hot ? ring : ""}>
               <div className="text-xs text-slate-400">{s.l}</div>
               <div className={`mt-1 text-3xl font-extrabold ${s.hot ? text : ""}`}>{s.v}</div>
-              <div className="mt-1 text-xs text-emerald-300 flex items-center gap-1"><TrendingUp size={12} /> {s.d}</div>
+              <div className="mt-1 text-xs text-emerald-300 flex items-center gap-1">{hasData && <TrendingUp size={12} />} {s.d}</div>
             </Card>
           ));
         })()}
       </div>
 
+      {!hasData && (
+        <Card className="border-violet-500/40 bg-gradient-to-br from-violet-600/15 to-emerald-600/10 text-center">
+          <h3 className="text-lg font-bold">No audits yet — get your first GEO score in 60 seconds</h3>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-400">Run an audit to unlock your visibility score, pillar radar, trends and prioritized fixes.</p>
+          <Link href="/dashboard/audit?fresh=1" className="mt-4 inline-block rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-black hover:bg-slate-200">
+            Run my first audit →
+          </Link>
+        </Card>
+      )}
+
+      {hasData && (
       <Card className="border-emerald-500/30 ring-1 ring-emerald-500/20">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="flex items-center gap-2 font-semibold"><Zap size={17} className="text-emerald-300" /> Top recommended fixes</h3>
           <Link href="/dashboard/audit" className="text-xs font-medium text-violet-300 hover:text-violet-200">Full audit →</Link>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
-          {(audit?.topActions ?? [
-            { title: "Add schema bundle (JSON-LD)", impact: "+12–18 pts", detail: "Organization + FAQPage + Article." },
-            { title: "Add AI excerpt & FAQ", impact: "+8–12 pts", detail: "40–60 word direct answer at top." },
-            { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", detail: "Whitelist GPTBot, PerplexityBot." },
-          ]).slice(0, 3).map((a: any, i: number) => (
+          {(audit!.topActions).slice(0, 3).map((a: any, i: number) => (
             <div key={i} className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-black">{i + 1}</span>
@@ -144,6 +152,7 @@ export default function DashboardOverview() {
           ))}
         </div>
       </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -152,6 +161,7 @@ export default function DashboardOverview() {
             <Badge tone="green">Live</Badge>
           </div>
           <div className="mt-4 h-64">
+            {hasData ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={visibilityTrend}>
                 <XAxis dataKey="d" stroke="#64748b" fontSize={12} />
@@ -161,14 +171,27 @@ export default function DashboardOverview() {
                 <Line type="monotone" dataKey="comp" stroke="#64748b" strokeWidth={2} strokeDasharray="6 4" dot={false} />
               </LineChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">No tracking data yet — run an audit to start building your trend.</div>
+            )}
           </div>
         </Card>
         <Card className="flex flex-col items-center text-center">
           <h3 className="font-semibold self-start text-left">Latest GEO score</h3>
           <div className="mt-3 flex flex-1 flex-col items-center justify-center">
-          <div className="mt-3"><ScoreRing score={audit?.overall ?? 63} /></div>
-          <div className="mt-2 w-full truncate text-sm text-slate-400" title={audit?.url ?? "acme.com"}>Grade {audit?.grade ?? "C"} · {audit?.url ?? "acme.com"}</div>
-          <Link href={audit?.url ? `/dashboard/audit?url=${encodeURIComponent(audit.url)}` : "/dashboard/audit"} className="mt-4 text-sm font-medium text-violet-300 hover:text-violet-200">View full audit →</Link>
+          {hasData ? (
+          <>
+          <div className="mt-3"><ScoreRing score={audit.overall} /></div>
+          <div className="mt-2 w-full truncate text-sm text-slate-400" title={audit.url}>Grade {audit.grade} · {audit.url}</div>
+          <Link href={`/dashboard/audit?url=${encodeURIComponent(audit.url)}`} className="mt-4 text-sm font-medium text-violet-300 hover:text-violet-200">View full audit →</Link>
+          </>
+          ) : (
+          <>
+          <div className="text-5xl font-extrabold text-slate-600">—</div>
+          <div className="mt-2 text-sm text-slate-500">No score yet</div>
+          <Link href="/dashboard/audit?fresh=1" className="mt-4 text-sm font-medium text-violet-300 hover:text-violet-200">Run first audit →</Link>
+          </>
+          )}
           </div>
         </Card>
       </div>
@@ -177,6 +200,7 @@ export default function DashboardOverview() {
         <Card>
           <h3 className="font-semibold">Visibility by AI engine</h3>
           <div className="mt-4 h-64">
+            {hasData ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={engineShare} layout="vertical">
                 <XAxis type="number" hide />
@@ -186,6 +210,9 @@ export default function DashboardOverview() {
                 <Bar dataKey="avg" fill="#334155" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">No engine data yet.</div>
+            )}
           </div>
         </Card>
         <Card>
@@ -194,6 +221,7 @@ export default function DashboardOverview() {
             <span className="text-[11px] text-slate-500">hover the chart for meaning</span>
           </div>
           <div className="mt-2 h-64">
+            {hasData ? (
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radar}>
                 <PolarGrid stroke="rgba(255,255,255,0.15)" />
@@ -202,12 +230,16 @@ export default function DashboardOverview() {
                 <Tooltip content={<PillarTip />} />
               </RadarChart>
             </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">Your pillar shape appears after your first audit.</div>
+            )}
           </div>
         </Card>
       </div>
 
       <Card>
         <div className="flex items-center gap-2 font-semibold"><Bell size={16} /> Recent AI citations</div>
+        {hasData ? (
         <div className="mt-3 space-y-2 text-sm">
           {[
             ["Perplexity cited your pricing page for “acme vs competitor pricing”", "2h ago", "green"],
@@ -220,6 +252,9 @@ export default function DashboardOverview() {
             </div>
           ))}
         </div>
+        ) : (
+          <p className="mt-3 text-sm text-slate-500">No citations tracked yet — they appear here once prompt tracking runs.</p>
+        )}
       </Card>
 
     </div>

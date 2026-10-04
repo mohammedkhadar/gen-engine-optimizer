@@ -305,6 +305,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
   // Rank fixes by score gap × weight. `link` deep-links into the generator
   // that produces the fix, so an audit finding is one click from done.
   const GEN = "/dashboard/content";
+  const thinPage = fetched && s.wordCount < 50;
   const topActions = [
     ...(!s.hasSchema
       ? [{ title: "Add schema bundle (JSON-LD)", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix.", link: GEN, linkLabel: "Generate the bundle →" }]
@@ -318,7 +319,16 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     { title: "Publish comparison & pricing pages", impact: "+6–9 pts", effort: "2–4 hrs", detail: "AI engines cite '/vs', '/pricing', '/alternatives' pages heavily. Add tables." },
     { title: "Earn 5 third-party mentions", impact: "+5–10 pts", effort: "Ongoing", detail: "Reddit, G2, Capterra, Quora, niche blogs — LLMs memorize these corpora." },
     { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary.", link: GEN, linkLabel: "Generate my llms.txt →" },
-  ].slice(0, 5);
+  ];
+
+  // Thin/walled pages: generic content fixes don't apply — lead with guidance
+  // to audit a real content page instead.
+  const ranked = thinPage
+    ? [
+        { title: "Audit a content-rich page instead", impact: "first step", effort: "2 min", detail: "This URL has almost no readable text (login wall, JS-only app, or portal homepage). Run the audit on a real content page — pricing, docs, or a guide — to get fixes that apply.", link: "/dashboard/audit?fresh=1", linkLabel: "Audit another page →" },
+        ...topActions,
+      ].slice(0, 5)
+    : topActions.slice(0, 5);
 
   return {
     url,
@@ -328,7 +338,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     categories,
     aiReadiness,
     citations,
-    topActions,
+    topActions: ranked,
     meta: {
       title: s.title,
       description: s.description,

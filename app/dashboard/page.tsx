@@ -83,7 +83,7 @@ export default function DashboardOverview() {
           <p className="text-sm text-slate-400">Here&apos;s how AI engines see your business today.</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard/audit" className="glass rounded-lg px-4 py-2 text-sm font-medium hover:bg-white/10">+ New audit</Link>
+          <Link href="/dashboard/audit?fresh=1" className="glass rounded-lg px-4 py-2 text-sm font-medium hover:bg-white/10">+ New audit</Link>
           <Link href="/dashboard/prompts" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-slate-200"><Plus size={14} className="inline" /> Track prompt</Link>
         </div>
       </div>

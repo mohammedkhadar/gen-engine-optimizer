@@ -41,6 +41,8 @@ function AuditInner() {
   useEffect(() => {
     const q = params.get("url");
     if (q) { setUrl(q); run(q); return; }
+    // ?fresh=1 (New audit button): blank form, skip cached restore.
+    if (params.get("fresh")) { setUrl(""); return; }
     // No URL given (e.g. "View full audit" from overview): restore last result.
     try {
       const cached = localStorage.getItem("rankai:lastAudit");

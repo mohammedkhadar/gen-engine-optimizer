@@ -257,7 +257,7 @@ export default function VideoPage() {
     speakingRef.current = true;
     const done = () => {
       // small beat after the last word before the scene moves on
-      setTimeout(() => { speakingRef.current = false; }, 900);
+      setTimeout(() => { speakingRef.current = false; }, 450);
     };
     u.onend = done;
     u.onerror = done;

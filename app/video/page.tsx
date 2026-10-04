@@ -310,12 +310,15 @@ export default function VideoPage() {
   const liveProgress = Math.min(100, (wall / liveTotal) * 100);
   idxRef.current = idx;
 
-  // Speak a scene's narration. Extracted so the first user gesture can
-  // (re)trigger it — browsers discard speech requested before interaction.
+  // Speak a scene's narration. Returns a cleanup that releases the frozen
+  // clock and clears timers. Doesn't rely on the browser's end event alone
+  // (Chrome fires it seconds late, sometimes never): a duration estimate from
+  // text length acts as backstop, whichever comes first wins.
   const speakScene = (i: number) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return () => {};
+    const text = SCENES[i].narration;
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(SCENES[i].narration);
+    const u = new SpeechSynthesisUtterance(text);
     const en = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
     // Prefer warm, natural voices; skip robotic ones (eSpeak, legacy desktop).
     const robotic = /espeak|whisper|fred|ralph|bulbul| Reed |rocko| Shelley |junior|kathy/i;
@@ -334,15 +337,22 @@ export default function VideoPage() {
     u.rate = 0.98;
     u.pitch = 1.05;
     speakingRef.current = true;
-    const done = () => {
-      // beat after the last word before the scene moves on
-      setTimeout(() => { speakingRef.current = false; }, 2000);
+    let released = false;
+    const timers: number[] = [];
+    const release = (delay: number) => {
+      if (released) return;
+      released = true;
+      timers.push(window.setTimeout(() => { speakingRef.current = false; }, delay));
     };
-    u.onend = done;
-    u.onerror = done;
-    // safety: never freeze longer than 90s even if speech events misbehave
-    setTimeout(() => { speakingRef.current = false; }, 90000);
+    u.onend = () => release(2000);
+    u.onerror = () => release(500);
+    // Backstop: generous duration estimate in case the end event lags or drops.
+    const estMs = Math.max(4000, (text.length / 12) * 1000) + 4000;
+    timers.push(window.setTimeout(() => release(0), estMs));
+    // Absolute failsafe: never freeze longer than 90s.
+    timers.push(window.setTimeout(() => { released = true; speakingRef.current = false; }, 90000));
     window.speechSynthesis.speak(u);
+    return () => { timers.forEach((id) => clearTimeout(id)); };
   };
 
   // Unlock audio on the first interaction anywhere: start music. Narration
@@ -380,8 +390,9 @@ export default function VideoPage() {
       return () => { speakingRef.current = false; };
     }
     if (!soundOn || typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    speakScene(idx);
+    const stopSpeaking = speakScene(idx);
     return () => {
+      stopSpeaking();
       window.speechSynthesis.cancel();
       speakingRef.current = false;
     };

@@ -38,14 +38,48 @@ export default function ContentPage() {
     }
   };
 
+  // Derive buyer-question FAQs from the actual input text: split into
+  // sentences, classify each by its signals (price, time, action, place,
+  // proof), and turn the strongest matches into Q&As quoted from the source.
+  const buildFaqs = (raw: string) => {
+    const sentences = raw
+      .replace(/\s+/g, " ")
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 20 && s.length < 400);
+    type Hit = { q: string; a: string; rank: number };
+    const hits: Hit[] = [];
+    const seen = new Set<string>();
+    const push = (q: string, a: string, rank: number) => {
+      if (seen.has(q)) return;
+      seen.add(q);
+      hits.push({ q, a: a.length > 220 ? a.slice(0, 217).trimEnd() + "…" : a, rank });
+    };
+    const has = (re: RegExp) => (s: string) => re.test(s);
+    const isPrice = has(/[$€£]\s?\d|%\s?(off|discount)|\b\d[\d,]*\s?(usd|eur|dollar)|\bprice|cost|pricing|per\s?(month|year|user)|free trial/i);
+    const isTime = has(/\b\d+\s?(minute|hour|day|week|month)s?\b|same-?day|24\s?\/\s?7|fast|quick|instant/i);
+    const isAction = has(/\b(book|call|sign\s?up|start|try|visit|contact|order|schedule|download|get started)\b/i);
+    const isPlace = has(/\bin\s+[A-Z][a-z]+|\b[A-Z][a-z]+\s?(city|town|area)\b|address|location|near me|open/i);
+    const isProof = has(/★|stars?|reviews?|rated|trusted|award|certified|guarantee|years?/i);
+    sentences.forEach((s, i) => {
+      if (isPrice(s)) push("How much does it cost?", s, 100 - i);
+      else if (isTime(s)) push("How fast is it?", s, 90 - i);
+      else if (isAction(s)) push("How do I get started?", s, 80 - i);
+      else if (isPlace(s)) push("Where are you located?", s, 70 - i);
+      else if (isProof(s)) push("Why should I trust you?", s, 60 - i);
+      else if (i === 0) push("What do you offer?", s, 50);
+    });
+    // Fallback so short/generic copy still yields something grounded.
+    if (!hits.length && sentences.length) push("What is on this page?", sentences.slice(0, 2).join(" "), 10);
+    return hits
+      .sort((a, b) => b.rank - a.rank)
+      .slice(0, 5)
+      .map(({ q, a }) => ({ q, a }));
+  };
+
   const optimize = () => {
-    const brand = "your business";
     const excerpt = `TL;DR: ${input.trim().slice(0, 180)} — verified for 2026, with transparent pricing, real reviews, and same-week booking.`;
-    const faqs = [
-      { q: "How much does it cost?", a: "Transparent flat-rate pricing with no hidden fees — see the full price table below, updated 2026." },
-      { q: "Why choose us vs competitors?", a: "Higher review volume, credentialed specialists, and same-week availability. Comparison table below." },
-      { q: "How do I book?", a: "Book online in 60 seconds or call us — address, hours and map included with Organization schema." },
-    ];
+    const faqs = buildFaqs(input);
     const schema = {
       "@context": "https://schema.org",
       "@type": "FAQPage",

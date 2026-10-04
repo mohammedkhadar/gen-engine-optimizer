@@ -165,6 +165,7 @@ export default function VideoPage() {
   const [voiceURI, setVoiceURI] = useState("");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const timer = useRef<NodeJS.Timeout | null>(null);
+  const speakingRef = useRef(false);
   const audioRef = useRef<{ ctx: AudioContext; gain: GainNode } | null>(null);
 
   // Browsers block audio until a user gesture — sound starts via the Enable button.
@@ -222,7 +223,12 @@ export default function VideoPage() {
 
   useEffect(() => {
     if (!playing) return;
-    timer.current = setInterval(() => setT((v) => (v + 0.1 >= TOTAL ? 0 : v + 0.1)), 100);
+    // While narration is speaking, freeze the clock so the scene waits for its
+    // voiceover instead of cutting it off. Durations become minimums.
+    timer.current = setInterval(
+      () => setT((v) => (v + 0.1 >= TOTAL ? 0 : speakingRef.current ? v : v + 0.1)),
+      100
+    );
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [playing]);
 
@@ -235,6 +241,8 @@ export default function VideoPage() {
   const progress = (t / TOTAL) * 100;
 
   // Speak the current scene's narration whenever the scene changes (if sound on).
+  // The clock freezes while speaking (see timer), so long narrations — e.g.
+  // scene 1 — always play out fully before advancing.
   useEffect(() => {
     if (!soundOn || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
@@ -246,8 +254,21 @@ export default function VideoPage() {
       en[0] ??
       null;
     u.rate = 1.02;
+    speakingRef.current = true;
+    const done = () => {
+      // small beat after the last word before the scene moves on
+      setTimeout(() => { speakingRef.current = false; }, 900);
+    };
+    u.onend = done;
+    u.onerror = done;
+    // safety: never freeze longer than 90s even if speech events misbehave
+    const failsafe = setTimeout(() => { speakingRef.current = false; }, 90000);
     window.speechSynthesis.speak(u);
-    return () => window.speechSynthesis.cancel();
+    return () => {
+      clearTimeout(failsafe);
+      window.speechSynthesis.cancel();
+      speakingRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, soundOn]);
 
@@ -303,7 +324,7 @@ export default function VideoPage() {
               <button onClick={() => setPlaying(!playing)} className="rounded-full bg-white p-2 text-black">
                 {playing ? <Pause size={16} /> : <Play size={16} />}
               </button>
-              <button onClick={() => setT(0)} className="rounded-full border border-white/20 p-2"><RotateCcw size={16} /></button>
+              <button onClick={() => { window.speechSynthesis?.cancel(); speakingRef.current = false; setT(0); }} className="rounded-full border border-white/20 p-2"><RotateCcw size={16} /></button>
               <span className="text-xs text-slate-300">{Math.floor(t)}s / {TOTAL}s · {scene.kicker}</span>
               <div className="ml-auto flex items-center gap-1.5">
                 {soundOn ? (
@@ -333,7 +354,7 @@ export default function VideoPage() {
               <div className="ml-1 flex gap-1.5">
                 {SCENES.map((s, i) => (
                   <button key={s.id} title={s.kicker}
-                    onClick={() => setT(SCENES.slice(0, i).reduce((a, x) => a + x.dur, 0))}
+                    onClick={() => { window.speechSynthesis?.cancel(); speakingRef.current = false; setT(SCENES.slice(0, i).reduce((a, x) => a + x.dur, 0)); }}
                     className={`h-2 w-6 rounded-full ${i === idx ? "bg-white" : i < idx ? "bg-white/40" : "bg-white/15"}`} />
                 ))}
               </div>

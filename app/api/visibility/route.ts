@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { simulatePromptTests, competitorSet } from "@/lib/geo-engine";
+import { simulatePromptTests, competitorSet, brandStats } from "@/lib/geo-engine";
 import { livePromptTest, providerStatus } from "@/lib/providers/citations";
 import { prisma, hasDatabase } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
-  const { brand = "Acme", domain = "acme.com" } = await req.json().catch(() => ({}));
+  const { brand = "Acme", domain = "acme.com", competitors: rivalNames = [] } = await req.json().catch(() => ({}));
   const b = String(brand);
   const d = String(domain);
 
@@ -24,6 +24,10 @@ export async function POST(req: NextRequest) {
 
   const competitors = competitorSet(b);
   const avgVisibility = Math.round(tests.reduce((a, t) => a + t.visibility, 0) / tests.length);
+
+  // User-defined comparison table: you + each named rival, same methodology.
+  const rivals: string[] = Array.isArray(rivalNames) ? rivalNames.map(String).filter(Boolean).slice(0, 8) : [];
+  const comparison = [brandStats(b, d), ...rivals.filter((r) => r.toLowerCase() !== b.toLowerCase()).map((r) => brandStats(r))];
 
   // Persist prompt runs when DB configured (best-effort).
   try {
@@ -54,5 +58,5 @@ export async function POST(req: NextRequest) {
     console.error("prompt persist failed (non-fatal):", e);
   }
 
-  return NextResponse.json({ tests, competitors, avgVisibility, providers: providerStatus() });
+  return NextResponse.json({ tests, competitors, comparison, avgVisibility, providers: providerStatus() });
 }

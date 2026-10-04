@@ -380,3 +380,19 @@ export function competitorSet(brand: string) {
     { name: "Competitor C", visibility: 44 + (h("g") % 10), mentions: 620 + h("h") * 22, sentiment: 71, trend: [38, 40, 41, 43, 44, 45] },
   ];
 }
+
+// Per-brand stats for user-defined competitor comparison. Visibility is the
+// average across the standard prompt battery; mentions/sentiment/trend are
+// deterministic estimates (same methodology as simulatePromptTests).
+export function brandStats(name: string, domain?: string) {
+  const clean = name.trim() || "Brand";
+  const dom = domain?.trim() || `${clean.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`;
+  const tests = simulatePromptTests(clean, dom);
+  const visibility = Math.round(tests.reduce((a, t) => a + t.visibility, 0) / tests.length);
+  const h = (s: string) => hashStr(clean + dom + s);
+  const mentions = 400 + (h("m") % 1800);
+  const sentiment = 62 + (h("s") % 24);
+  const base = visibility - 12;
+  const trend = [0, 1, 2, 3, 4, 5].map((i) => Math.max(5, Math.min(95, base + i * 2 + ((h("t" + i) % 7) - 3))));
+  return { name: clean, domain: dom, visibility, mentions, sentiment, trend };
+}

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
-import { TrendingUp, Bell, Plus } from "lucide-react";
+import { TrendingUp, Bell, Plus, X } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -18,17 +18,50 @@ const engineShare = [
   { engine: "Copilot", you: 61, avg: 53 },
 ];
 
+const PILLAR_INFO: Record<string, { full: string; what: string; fix: string }> = {
+  "Crawlability": { full: "Crawlability & Technical (15%)", what: "Can AI bots reach, load and render your pages? Title tags, meta descriptions, speed, and AI crawlers allowed in robots.txt.", fix: "Allow GPTBot/PerplexityBot/ClaudeBot, keep TTFB < 800ms, no JS-only content." },
+  "Structured": { full: "Structured Data & Machine Readability (20%)", what: "Machine-readable facts via JSON-LD (Organization, FAQPage, Article). Lets engines parse with certainty instead of guessing.", fix: "Add the schema bundle — highest-leverage fix (+12–18 pts)." },
+  "E-E-A-T": { full: "E-E-A-T & Trust (20%)", what: "Do engines trust you? Author bylines with credentials, publish dates, stats, and links to primary sources.", fix: "Add bios, dates, and 3+ outbound citations per key page." },
+  "Answer-Ready": { full: "Answer-Ready Content (25%)", what: "Is your content shaped like quotable answers? 40–60 word TL;DR up top, question-style headings, bullets and tables.", fix: "Lead every page with a direct answer block + 5 Q&A headings." },
+  "Freshness": { full: "Freshness & Reputation (10%)", what: "Do you look current and talked-about? Update dates, fresh edits, reviews and third-party mentions (Reddit, G2).", fix: "Refresh top pages every 60–90 days with a changelog note." },
+  "Citability": { full: "Citability & Evidence (10%)", what: "Is there anything shaped like a quotable fact? Stats, one-liners, tables and expert quotes answers can lift with a link.", fix: "One stat + source link per section, quotable takeaways." },
+};
+
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
+  const [labelPopup, setLabelPopup] = useState<string | null>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
     if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
   }, []);
 
   const radar = audit?.categories?.map((c: any) => ({ k: c.label.split(" ")[0], v: c.score })) ?? [
-    { k: "Crawl", v: 72 }, { k: "Schema", v: 44 }, { k: "E-E-A-T", v: 68 },
-    { k: "Answer", v: 81 }, { k: "Fresh", v: 60 }, { k: "Cite", v: 57 },
+    { k: "Crawlability", v: 72 }, { k: "Structured", v: 44 }, { k: "E-E-A-T", v: 68 },
+    { k: "Answer-Ready", v: 81 }, { k: "Freshness", v: 60 }, { k: "Citability", v: 57 },
   ];
+
+  // Custom axis label: pillar name + tappable "?" — click opens the meaning popup.
+  const AxisLabel = ({ x, y, payload }: any) => {
+    const k: string = payload?.value ?? "";
+    const info = PILLAR_INFO[k];
+    return (
+      <g
+        transform={`translate(${x},${y})`}
+        onClick={(e) => { e.stopPropagation(); setLabelPopup(k); }}
+        style={{ cursor: info ? "pointer" : "default" }}
+      >
+        {info && <title>{`${info.full} — tap for details`}</title>}
+        <text textAnchor="middle" fill="#94a3b8" fontSize={11} dy={-9}>{k}</text>
+        {info && (
+          <>
+            <circle cy={6} r={8.5} fill="rgba(139,92,246,0.18)" stroke="#8b5cf6" strokeWidth={1.2} />
+            <text textAnchor="middle" dy={9.5} fill="#c4b5fd" fontSize={10} fontWeight="bold">?</text>
+          </>
+        )}
+      </g>
+    );
+  };
+  const popup = labelPopup ? PILLAR_INFO[labelPopup] : null;
 
   return (
     <div className="space-y-6">
@@ -99,17 +132,35 @@ export default function DashboardOverview() {
             </ResponsiveContainer>
           </div>
         </Card>
-        <Card>
-          <h3 className="font-semibold">GEO pillars radar</h3>
+        <Card className="relative">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">GEO pillars radar</h3>
+            <span className="text-[11px] text-slate-500">tap a label&apos;s ? for meaning</span>
+          </div>
           <div className="mt-2 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radar}>
                 <PolarGrid stroke="rgba(255,255,255,0.15)" />
-                <PolarAngleAxis dataKey="k" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                <PolarAngleAxis dataKey="k" tick={<AxisLabel />} />
                 <ReRadar dataKey="v" stroke="#34d399" fill="#34d399" fillOpacity={0.25} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
+          {popup && (
+            <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-violet-500/40 bg-[#141B2E]/95 p-4 shadow-2xl backdrop-blur-xl">
+              <div className="flex items-start justify-between gap-2">
+                <div className="font-semibold text-violet-200">{popup.full}</div>
+                <button onClick={() => setLabelPopup(null)} className="rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white">
+                  <X size={15} />
+                </button>
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-300">{popup.what}</p>
+              <p className="mt-1.5 text-xs text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{popup.fix}</p>
+              <Link href="/dashboard/audit" className="mt-2 inline-block text-xs font-medium text-violet-300 hover:text-violet-200">
+                Open full audit →
+              </Link>
+            </div>
+          )}
         </Card>
       </div>
 

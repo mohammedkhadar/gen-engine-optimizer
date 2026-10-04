@@ -159,6 +159,11 @@ const TOTAL = SCENES.reduce((a, s) => a + s.dur, 0);
 export default function VideoPage() {
   const [playing, setPlaying] = useState(true);
   const [t, setT] = useState(0);
+  const [wall, setWall] = useState(0);
+  const [over, setOver] = useState(0);
+  const wallRef = useRef(0);
+  const sceneStartRef = useRef(0);
+  const prevIdxRef = useRef(0);
   const [copied, setCopied] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [musicOn, setMusicOn] = useState(true);
@@ -270,12 +275,19 @@ export default function VideoPage() {
 
   useEffect(() => {
     if (!playing) return;
-    // While narration is speaking, freeze the clock so the scene waits for its
-    // voiceover instead of cutting it off. Durations become minimums.
-    timer.current = setInterval(
-      () => setT((v) => (v + 0.1 >= TOTAL ? 0 : speakingRef.current ? v : v + 0.1)),
-      100
-    );
+    // t (scene clock) freezes while narration speaks so scenes are never cut
+    // off; wall (display clock) always advances so the tracker never stalls.
+    timer.current = setInterval(() => {
+      setT((v) => {
+        if (v + 0.1 >= TOTAL) {
+          setWall(0);
+          setOver(0);
+          return 0;
+        }
+        return speakingRef.current ? v : v + 0.1;
+      });
+      setWall((w) => w + 0.1);
+    }, 100);
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [playing]);
 
@@ -285,7 +297,9 @@ export default function VideoPage() {
     acc += SCENES[i].dur; idx = i; local = SCENES[i].dur;
   }
   const scene = SCENES[idx];
-  const progress = (t / TOTAL) * 100;
+  wallRef.current = wall;
+  const liveTotal = TOTAL + over;
+  const liveProgress = Math.min(100, (wall / liveTotal) * 100);
   idxRef.current = idx;
 
   // Speak a scene's narration. Extracted so the first user gesture can
@@ -335,9 +349,15 @@ export default function VideoPage() {
   }, [unlocked, soundOn, musicOn]);
 
   // Speak the current scene's narration whenever the scene changes (if sound on).
-  // The clock freezes while speaking (see timer), so long narrations — e.g.
-  // scene 1 — always play out fully before advancing.
+  // The scene clock freezes while speaking (see timer), so long narrations —
+  // e.g. scene 1 — always play out fully before advancing. Overtime beyond the
+  // planned duration is added to the displayed total so the tracker stays live.
   useEffect(() => {
+    const spent = wallRef.current - sceneStartRef.current;
+    const extra = spent - SCENES[prevIdxRef.current].dur;
+    if (extra > 0.5) setOver((o) => o + extra);
+    sceneStartRef.current = wallRef.current;
+    prevIdxRef.current = idx;
     if (!soundOn || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     speakScene(idx);
     return () => {
@@ -393,14 +413,14 @@ export default function VideoPage() {
           {/* transport */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
             <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/15">
-              <div className="h-full bg-gradient-to-r from-indigo-400 to-emerald-400" style={{ width: `${progress}%` }} />
+              <div className="h-full bg-gradient-to-r from-indigo-400 to-emerald-400 transition-[width] duration-100" style={{ width: `${liveProgress}%` }} />
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => setPlaying(!playing)} className="rounded-full bg-white p-2 text-black">
                 {playing ? <Pause size={16} /> : <Play size={16} />}
               </button>
-              <button onClick={() => { window.speechSynthesis?.cancel(); speakingRef.current = false; setT(0); }} className="rounded-full border border-white/20 p-2"><RotateCcw size={16} /></button>
-              <span className="text-xs text-slate-300">{Math.floor(t)}s / {TOTAL}s · {scene.kicker}</span>
+              <button onClick={() => { window.speechSynthesis?.cancel(); speakingRef.current = false; setT(0); setWall(0); setOver(0); sceneStartRef.current = 0; prevIdxRef.current = 0; }} className="rounded-full border border-white/20 p-2"><RotateCcw size={16} /></button>
+              <span className="text-xs text-slate-300">{Math.floor(wall)}s / ~{Math.round(liveTotal)}s · {scene.kicker}</span>
               <div className="ml-auto flex items-center gap-1.5">
                 {!unlocked && soundOn && (
                   <span className="animate-pulse rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[11px] font-medium text-amber-200">
@@ -434,7 +454,16 @@ export default function VideoPage() {
               <div className="ml-1 flex gap-1.5">
                 {SCENES.map((s, i) => (
                   <button key={s.id} title={s.kicker}
-                    onClick={() => { window.speechSynthesis?.cancel(); speakingRef.current = false; setT(SCENES.slice(0, i).reduce((a, x) => a + x.dur, 0)); }}
+                    onClick={() => {
+                      window.speechSynthesis?.cancel();
+                      speakingRef.current = false;
+                      const target = SCENES.slice(0, i).reduce((a, x) => a + x.dur, 0);
+                      setT(target);
+                      setWall(target);
+                      setOver(0);
+                      sceneStartRef.current = target;
+                      prevIdxRef.current = i;
+                    }}
                     className={`h-2 w-6 rounded-full ${i === idx ? "bg-white" : i < idx ? "bg-white/40" : "bg-white/15"}`} />
                 ))}
               </div>

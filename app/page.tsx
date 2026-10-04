@@ -59,6 +59,9 @@ export default function LandingPage() {
             <span className="flex items-center gap-1.5"><Check size={16} className="text-emerald-400" /> 60-second audit</span>
             <span className="flex items-center gap-1.5"><Check size={16} className="text-emerald-400" /> 2,400+ brands tracked</span>
           </div>
+          <div className="mt-3 text-center text-xs text-slate-500">
+            Scoring built on peer-reviewed GEO research — <Link href="/research" className="text-violet-300 underline hover:text-violet-200">see the methodology</Link>
+          </div>
         </div>
       </section>
 

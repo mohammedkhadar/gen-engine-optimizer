@@ -329,18 +329,25 @@ export default function VideoPage() {
     if (!en.length) return () => {}; // no TTS voices in this browser: stay silent, don't jam the queue
     window.speechSynthesis.cancel();
     // Prefer warm, natural voices; skip robotic ones (eSpeak, legacy desktop).
+    // Crucially, prefer on-device (localService) voices first: network voices
+    // can stay silent when their cloud TTS endpoint is unreachable, while the
+    // engine still reports speaking=true — narration missing with no error.
     const robotic = /espeak|whisper|fred|ralph|bulbul| Reed |rocko| Shelley |junior|kathy/i;
     const natural = en.filter((v) => !robotic.test(v.name));
     const pool = natural.length ? natural : en;
+    const localFirst = [...pool].sort((a, b) => Number(b.localService ?? true) - Number(a.localService ?? true));
     const pick =
-      pool.find((v) => v.voiceURI === voiceURI) ??
-      pool.find((v) => /google us english/i.test(v.name)) ??
-      pool.find((v) => /samantha/i.test(v.name)) ??
-      pool.find((v) => /aria|jenny/i.test(v.name) && /natural|online/i.test(v.name)) ??
-      pool.find((v) => /aria|jenny|guy|davis|jane/i.test(v.name)) ??
-      pool.find((v) => /zira|susan|zira/i.test(v.name)) ??
-      pool[0] ??
+      localFirst.find((v) => v.voiceURI === voiceURI) ??
+      localFirst.find((v) => /google us english/i.test(v.name)) ??
+      localFirst.find((v) => /samantha/i.test(v.name)) ??
+      localFirst.find((v) => /aria|jenny/i.test(v.name) && /natural|online/i.test(v.name)) ??
+      localFirst.find((v) => /aria|jenny|guy|davis|jane/i.test(v.name)) ??
+      localFirst.find((v) => /zira|susan|zira/i.test(v.name)) ??
+      localFirst[0] ??
       null;
+    try {
+      (window as any).__rankaiVoice = pick ? `${pick.name} (local=${pick.localService})` : "none";
+    } catch {}
     speakingRef.current = true;
     let released = false;
     let started = false;
@@ -465,7 +472,7 @@ export default function VideoPage() {
         `scene=${idxRef.current} wall=${wallRef.current.toFixed(0)} frozen=${speakingRef.current} ` +
         `synth.speaking=${s?.speaking} pending=${s?.pending} ` +
         `boundaryAge=${boundaryRef.current ? ((Date.now() - boundaryRef.current) / 1000).toFixed(1) + "s" : "never"} ` +
-        `voices=${voices.length} ready=${voicesReady}`
+        `voices=${voices.length} ready=${voicesReady} voice=${(window as any).__rankaiVoice ?? "?"}`
       );
     }, 500);
     return () => clearInterval(id);

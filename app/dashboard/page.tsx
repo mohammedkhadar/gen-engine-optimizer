@@ -31,7 +31,6 @@ export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
   const [tipKey, setTipKey] = useState<string | null>(null);
   const [pinnedTip, setPinnedTip] = useState<string | null>(null);
-  const [tipPos, setTipPos] = useState<{ x: number; y: number } | null>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
     if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
@@ -143,10 +142,6 @@ export default function DashboardOverview() {
           </div>
           <div
             className="relative mt-2 h-64"
-            onMouseMove={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              setTipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-            }}
             onMouseLeave={() => { setTipKey(null); setPinnedTip(null); }}
           >
             <ResponsiveContainer width="100%" height="100%">
@@ -158,12 +153,7 @@ export default function DashboardOverview() {
             </ResponsiveContainer>
             {(tipKey || pinnedTip) && PILLAR_INFO[tipKey ?? pinnedTip ?? ""] && (
               <div
-                className="pointer-events-none absolute z-10 w-64 rounded-xl border border-violet-500/40 bg-[#141B2E]/95 p-3 shadow-2xl backdrop-blur-xl"
-                style={
-                  tipPos && !pinnedTip
-                    ? { left: Math.min(tipPos.x + 14, 220), top: Math.max(tipPos.y - 20, 0) }
-                    : { left: "50%", top: 8, transform: "translateX(-50%)" }
-                }
+                className="pointer-events-none absolute left-1/2 top-2 z-10 w-64 -translate-x-1/2 rounded-xl border border-violet-500/40 bg-[#141B2E]/95 p-3 shadow-2xl backdrop-blur-xl"
               >
                 <div className="text-xs font-semibold text-violet-200">{PILLAR_INFO[(tipKey ?? pinnedTip) as string].full}</div>
                 <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{PILLAR_INFO[(tipKey ?? pinnedTip) as string].what}</p>

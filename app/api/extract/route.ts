@@ -9,7 +9,16 @@ export async function POST(req: NextRequest) {
     if (!raw || typeof raw !== "string") return NextResponse.json({ error: "Provide a URL" }, { status: 400 });
     const url = normalizeUrl(raw);
     const { html, loadMs } = await fetchHtml(url);
-    if (!html) return NextResponse.json({ error: "Could not fetch a readable page at that URL.", url }, { status: 422 });
+    if (!html) {
+      const host = new URL(url).hostname;
+      const walled = /facebook|instagram|linkedin|twitter|x\.com|tiktok/.test(host);
+      return NextResponse.json({
+        error: walled
+          ? `${host} blocks automated readers (login wall / bot protection). Copy the visible text and paste it manually below instead.`
+          : `Could not fetch a readable page at that URL (server refused or timed out). Check the address, or paste the text manually below.`,
+        url,
+      }, { status: 422 });
+    }
     const { title, text, truncated } = extractText(html);
     if (!text) return NextResponse.json({ error: "Page fetched but no readable text found (JS-only or blocked page?).", url }, { status: 422 });
     return NextResponse.json({ url, title, text, truncated, loadMs, chars: text.length });

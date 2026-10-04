@@ -65,6 +65,23 @@ export function extractSignals(html: string) {
   const headings = (html.match(/<h[1-6][\s>]/gi) || []).length;
   const images = (html.match(/<img[\s>]/gi) || []).length;
   const links = (html.match(/<a[\s>]/gi) || []).length;
+  // Discover pricing/comparison pages from outbound links — multilingual slugs
+  // included (cennik/ceny, preise, tarifs, precios, porównanie, vergleich…).
+  const hrefs: string[] = [];
+  const hrefRe = /<a[^>]+href=["']([^"']+)["']/gi;
+  let hm: RegExpExecArray | null;
+  while ((hm = hrefRe.exec(html)) !== null && hrefs.length < 300) hrefs.push(hm[1]);
+  const pathOf = (h: string) => {
+    try {
+      return new URL(h, "https://x.test").pathname.toLowerCase();
+    } catch {
+      return h.toLowerCase();
+    }
+  };
+  const PRICING_RE = /\/(pricing|prices?|cennik|ceny|preise?|tarifs?|tariffe|precios?|prix|prijzen|plans?|packages?|price-list|oferta)(\/|$|\?|#)/;
+  const COMPARE_RE = /(\/vs\b|\/versus|\/comparison|\/compare|\/alternatives?|\/por[oó]wnanie|\/vergleich|\/comparaison|\/comparativa|\bvs\b.*\bvs\b)/;
+  const pricingUrl = hrefs.find((h) => PRICING_RE.test(pathOf(h))) ?? null;
+  const compareUrl = hrefs.find((h) => COMPARE_RE.test(pathOf(h))) ?? null;
   const has = (s: string) => lower.includes(s);
   return {
     title,
@@ -73,7 +90,10 @@ export function extractSignals(html: string) {
     headings,
     images,
     links,
-    hasSchema: has("application/ld+json") || has("itemscope") || has("schema.org"),
+    pricingUrl,
+    compareUrl,
+    hasPricingPage: !!pricingUrl,
+    hasComparePage: !!compareUrl,    hasSchema: has("application/ld+json") || has("itemscope") || has("schema.org"),
     hasFAQ: has("faq") && (has("application/ld+json") || headings > 3),
     hasOG: has("og:title") || has("og:description"),
     hasRobots: has("robots"),
@@ -102,6 +122,10 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
         headings: 0,
         images: 0,
         links: 0,
+        pricingUrl: null,
+        compareUrl: null,
+        hasPricingPage: false,
+        hasComparePage: false,
         hasSchema: false,
         hasFAQ: false,
         hasOG: false,
@@ -217,6 +241,8 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     0.25,
     [
       s.headings >= 4 ? `${s.headings} headings — decent question coverage` : `Only ${s.headings} headings — add question-style H2s`,
+      ...(s.pricingUrl ? [`Pricing page linked: ${s.pricingUrl}`] : []),
+      ...(s.compareUrl ? [`Comparison page linked: ${s.compareUrl}`] : []),
       s.hasLists ? "Lists detected (LLMs love step-by-step extraction)" : "No lists — add TL;DR + steps + pros/cons blocks",
       s.hasQA ? "Question phrasing detected" : "No direct Q&A phrasing — mirror how users prompt AI",
       s.wordCount > 0 ? `Density: ~${s.wordCount} words` : "No content analyzed",
@@ -315,7 +341,15 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     ...(!s.hasAuthor
       ? [{ title: "Add authorship & sources", impact: "+6–10 pts", effort: "30 min", detail: "Byline, credentials, publish date, 3+ outbound citations to primary sources.", link: GEN, linkLabel: "Open content optimizer →" }]
       : []),
-    { title: "Publish comparison & pricing pages", impact: "+6–9 pts", effort: "2–4 hrs", detail: "AI engines cite '/vs', '/pricing', '/alternatives' pages heavily. Add tables." },
+    ...(!s.hasPricingPage && !s.hasComparePage
+      ? [{ title: "Publish comparison & pricing pages", impact: "+6–9 pts", effort: "2–4 hrs", detail: "AI engines cite '/vs', '/pricing', '/alternatives' pages heavily. Add tables." }]
+      : []),
+    ...(s.hasPricingPage && !s.hasComparePage
+      ? [{ title: "Publish a comparison page", impact: "+4–6 pts", effort: "1–2 hrs", detail: `Pricing detected${s.pricingUrl ? ` at ${s.pricingUrl}` : ""} — now add the missing half: a '/vs' comparison with tables, which AI engines cite just as heavily.` }]
+      : []),
+    ...(!s.hasPricingPage && s.hasComparePage
+      ? [{ title: "Publish a pricing page", impact: "+4–6 pts", effort: "1–2 hrs", detail: `Comparison content detected${s.compareUrl ? ` at ${s.compareUrl}` : ""} — now add transparent pricing with tables, the most-cited page type of all.` }]
+      : []),
     { title: "Earn 5 third-party mentions", impact: "+5–10 pts", effort: "Ongoing", detail: "Reddit, G2, Capterra, Quora, niche blogs — LLMs memorize these corpora." },
     { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary.", link: GEN, linkLabel: "Generate my llms.txt →" },
   ];

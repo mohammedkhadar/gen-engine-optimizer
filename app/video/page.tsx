@@ -164,6 +164,8 @@ export default function VideoPage() {
   const wallRef = useRef(0);
   const sceneStartRef = useRef(0);
   const prevIdxRef = useRef(0);
+  const boundaryRef = useRef(0);
+  const bornRef = useRef(0);
   const [copied, setCopied] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [musicOn, setMusicOn] = useState(true);
@@ -171,6 +173,8 @@ export default function VideoPage() {
   const [voiceURI, setVoiceURI] = useState("");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voicesReady, setVoicesReady] = useState(false);
+  const [showDbg, setShowDbg] = useState(false);
+  const [dbg, setDbg] = useState("");
   const timer = useRef<NodeJS.Timeout | null>(null);
   const speakingRef = useRef(false);
   const audioRef = useRef<{ ctx: AudioContext; gain: GainNode; sched?: number } | null>(null);
@@ -348,8 +352,8 @@ export default function VideoPage() {
       released = true;
       timers.push(window.setTimeout(() => { speakingRef.current = false; }, delay));
     };
-    u.onstart = () => { started = true; lastBoundary = Date.now(); };
-    u.onboundary = () => { lastBoundary = Date.now(); };
+    u.onstart = () => { started = true; lastBoundary = Date.now(); boundaryRef.current = lastBoundary; bornRef.current = bornAt; };
+    u.onboundary = () => { lastBoundary = Date.now(); boundaryRef.current = lastBoundary; };
     u.onend = () => release(2000);
     u.onerror = () => release(500);
     // Primary end detection: word-boundary events stop the instant audio stops.
@@ -421,6 +425,24 @@ export default function VideoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, soundOn, unlocked, voicesReady]);
 
+  // Temporary diagnostics: open /video?debug=1 to see live narration state.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!new URLSearchParams(window.location.search).has("debug")) return;
+    setShowDbg(true);
+    const id = window.setInterval(() => {
+      const s = window.speechSynthesis;
+      setDbg(
+        `scene=${idxRef.current} t=${t.toFixed?.(0) ?? "?"} frozen=${speakingRef.current} ` +
+        `synth.speaking=${s?.speaking} pending=${s?.pending} ` +
+        `boundaryAge=${boundaryRef.current ? ((Date.now() - boundaryRef.current) / 1000).toFixed(1) + "s" : "never"} ` +
+        `voices=${voices.length} ready=${voicesReady}`
+      );
+    }, 500);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voices.length, voicesReady]);
+
   const copyScript = () => {
     navigator.clipboard.writeText(SCENES.map((s, i) => `SCENE ${i + 1} (${s.kicker}, ${s.dur}s)\n${s.narration}`).join("\n\n"));
     setCopied(true); setTimeout(() => setCopied(false), 1500);
@@ -456,6 +478,11 @@ export default function VideoPage() {
         <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0B0F1A]">
           <div className="grid-bg absolute inset-0" />
           <div className="absolute left-1/2 top-0 h-64 w-[600px] -translate-x-1/2 rounded-full bg-violet-600/20 blur-[100px]" />
+          {showDbg && (
+            <div className="absolute left-3 top-3 z-20 max-w-[90%] rounded-lg bg-black/85 p-2 font-mono text-[10px] leading-relaxed text-lime-300">
+              DBG {dbg}
+            </div>
+          )}
           <div key={scene.id} className="scene-enter relative grid h-full grid-cols-2 items-center gap-6 px-10">
             <div>
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">{scene.kicker}</div>

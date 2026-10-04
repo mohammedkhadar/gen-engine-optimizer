@@ -192,7 +192,9 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     [
       s.hasAuthor ? "Author/byline signals found" : "No clear author attribution — AI models discount anonymous claims",
       s.hasDates ? "Publish/update dates detected" : "No visible publish dates — freshness unclear to models",
-      s.wordCount > 300 ? `${s.wordCount.toLocaleString()} words of extractable text` : `Only ${s.wordCount} words — thin content rarely cited`,
+      s.wordCount > 300 ? `${s.wordCount.toLocaleString()} words of extractable text` : s.wordCount < 50 && fetched
+        ? `Only ${s.wordCount} readable words — likely a login wall, JS-only app, or portal-style homepage with no content (e.g. google.com). Audit a content-rich inner page instead; this score doesn't reflect one.`
+        : `Only ${s.wordCount} words — thin content rarely cited`,
       s.hasStats ? "Statistics / numbers detected (good for citations)" : "No statistics detected — concrete numbers earn citations",
     ],
     [

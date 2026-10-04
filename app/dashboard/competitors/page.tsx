@@ -38,8 +38,22 @@ export default function CompetitorsPage() {
       if (saved) {
         const p = JSON.parse(saved);
         if (Array.isArray(p.rivals)) {
-          // migrate legacy string[] entries
-          setRivals(p.rivals.map((r: any) => (typeof r === "string" ? { name: r, domain: "" } : { name: r.name ?? "", domain: r.domain ?? "" })).filter((r: any) => r.name));
+          // migrate legacy string[] entries + backfill placeholder domains
+          const PLACEHOLDERS: Record<string, string> = {
+            "competitor a": "competitor-a.com",
+            "competitor b": "competitor-b.com",
+          };
+          const migrated = p.rivals.map((r: any) => {
+            const entry = typeof r === "string" ? { name: r, domain: "" } : { name: r.name ?? "", domain: r.domain ?? "" };
+            if (!entry.domain && PLACEHOLDERS[entry.name.toLowerCase()]) {
+              entry.domain = PLACEHOLDERS[entry.name.toLowerCase()];
+            }
+            return entry;
+          }).filter((r: any) => r.name);
+          setRivals(migrated);
+          if (JSON.stringify(migrated) !== JSON.stringify(p.rivals)) {
+            localStorage.setItem(LS_KEY, JSON.stringify({ rivals: migrated, brand: p.brand, domain: p.domain }));
+          }
         }
         if (p.brand) setBrand(p.brand);
         if (p.domain) setDomain(p.domain);

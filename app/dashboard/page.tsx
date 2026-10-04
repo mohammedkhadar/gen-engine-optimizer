@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
-import { TrendingUp, Bell, Plus, X } from "lucide-react";
+import { TrendingUp, Bell, Plus } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -29,7 +29,9 @@ const PILLAR_INFO: Record<string, { full: string; what: string; fix: string }> =
 
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
-  const [labelPopup, setLabelPopup] = useState<string | null>(null);
+  const [tipKey, setTipKey] = useState<string | null>(null);
+  const [pinnedTip, setPinnedTip] = useState<string | null>(null);
+  const [tipPos, setTipPos] = useState<{ x: number; y: number } | null>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
     if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
@@ -40,15 +42,16 @@ export default function DashboardOverview() {
     { k: "Answer-Ready", v: 81 }, { k: "Freshness", v: 60 }, { k: "Citability", v: 57 },
   ];
 
-  // Custom axis label: pillar name + tappable "?" — click opens the meaning popup.
+  // Custom axis label: pillar name + "?" — hover shows a cursor-following
+  // tooltip, tap pins it (touchscreens).
   const AxisLabel = ({ x, y, payload }: any) => {
     const k: string = payload?.value ?? "";
     const info = PILLAR_INFO[k];
     return (
       <g
         transform={`translate(${x},${y})`}
-        onClick={(e) => { e.stopPropagation(); setLabelPopup(k); }}
-        onMouseEnter={() => { if (info) setLabelPopup(k); }}
+        onClick={(e) => { e.stopPropagation(); setPinnedTip((p) => (p === k ? null : k)); setTipKey(null); }}
+        onMouseEnter={() => { if (info) { setTipKey(k); setPinnedTip(null); } }}
         style={{ cursor: info ? "pointer" : "default" }}
       >
         {info && <title>{`${info.full} — tap for details`}</title>}
@@ -62,7 +65,7 @@ export default function DashboardOverview() {
       </g>
     );
   };
-  const popup = labelPopup ? PILLAR_INFO[labelPopup] : null;
+  // (tooltip content rendered inline in the chart container below)
 
   return (
     <div className="space-y-6">
@@ -133,13 +136,19 @@ export default function DashboardOverview() {
             </ResponsiveContainer>
           </div>
         </Card>
-        <div onMouseLeave={() => setLabelPopup(null)}>
-        <Card className="relative">
+        <Card>
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">GEO pillars radar</h3>
-            <span className="text-[11px] text-slate-500">hover or tap a label&apos;s ? for meaning</span>
+            <span className="text-[11px] text-slate-500">hover a label for meaning</span>
           </div>
-          <div className="mt-2 h-64">
+          <div
+            className="relative mt-2 h-64"
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setTipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+            }}
+            onMouseLeave={() => { setTipKey(null); setPinnedTip(null); }}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radar}>
                 <PolarGrid stroke="rgba(255,255,255,0.15)" />
@@ -147,24 +156,22 @@ export default function DashboardOverview() {
                 <ReRadar dataKey="v" stroke="#34d399" fill="#34d399" fillOpacity={0.25} />
               </RadarChart>
             </ResponsiveContainer>
-          </div>
-          {popup && (
-            <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-violet-500/40 bg-[#141B2E]/95 p-4 shadow-2xl backdrop-blur-xl">
-              <div className="flex items-start justify-between gap-2">
-                <div className="font-semibold text-violet-200">{popup.full}</div>
-                <button onClick={() => setLabelPopup(null)} className="rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white">
-                  <X size={15} />
-                </button>
+            {(tipKey || pinnedTip) && PILLAR_INFO[tipKey ?? pinnedTip ?? ""] && (
+              <div
+                className="pointer-events-none absolute z-10 w-64 rounded-xl border border-violet-500/40 bg-[#141B2E]/95 p-3 shadow-2xl backdrop-blur-xl"
+                style={
+                  tipPos && !pinnedTip
+                    ? { left: Math.min(tipPos.x + 14, 220), top: Math.max(tipPos.y - 20, 0) }
+                    : { left: "50%", top: 8, transform: "translateX(-50%)" }
+                }
+              >
+                <div className="text-xs font-semibold text-violet-200">{PILLAR_INFO[(tipKey ?? pinnedTip) as string].full}</div>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{PILLAR_INFO[(tipKey ?? pinnedTip) as string].what}</p>
+                <p className="mt-1 text-[11px] text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{PILLAR_INFO[(tipKey ?? pinnedTip) as string].fix}</p>
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-300">{popup.what}</p>
-              <p className="mt-1.5 text-xs text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{popup.fix}</p>
-              <Link href="/dashboard/audit" className="mt-2 inline-block text-xs font-medium text-violet-300 hover:text-violet-200">
-                Open full audit →
-              </Link>
-            </div>
-          )}
+            )}
+          </div>
         </Card>
-        </div>
       </div>
 
       <Card>

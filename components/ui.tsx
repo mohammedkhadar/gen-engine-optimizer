@@ -94,6 +94,7 @@ export function Nav({ ctaHref = "/dashboard" }: { ctaHref?: string }) {
         <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
           <Link href="/#features" className="hover:text-white">Features</Link>
           <Link href="/#how" className="hover:text-white">How it works</Link>
+          <Link href="/video" className="hover:text-white">Video</Link>
           <Link href="/research" className="hover:text-white">Research</Link>
           <Link href="/pricing" className="hover:text-white">Pricing</Link>
         </nav>

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { scoreUrl } from "@/lib/geo-engine";
 import { prisma, hasDatabase } from "@/lib/db";
 import { saveAuditLocal } from "@/lib/store";
@@ -55,19 +57,31 @@ export async function POST(req: NextRequest) {
     };
 
     // Persist: Postgres when configured, else local JSON.
+    // Audits are scoped to the signed-in user so accounts never see each
+    // other's reports; logged-out audits stay anonymous.
     try {
       if (hasDatabase) {
         const host = new URL(url).hostname;
-        const domain = await prisma.domain.upsert({
-          where: { id: `anon-${host}` },
-          update: { url },
-          create: { id: `anon-${host}`, url, brand: brand ?? host },
-        }).catch(async () => {
-          // id-based upsert fallback if unique differs
-          const existing = await prisma.domain.findFirst({ where: { url } });
-          if (existing) return existing;
-          return prisma.domain.create({ data: { url, brand: brand ?? host } });
-        });
+        const session = await getServerSession(authOptions).catch(() => null);
+        const ownerEmail = session?.user?.email ?? null;
+        const owner = ownerEmail
+          ? await prisma.user.findUnique({ where: { email: ownerEmail } }).catch(() => null)
+          : null;
+        const domain = owner
+          ? await (async () => {
+              const existing = await prisma.domain.findFirst({ where: { userId: owner.id, url } });
+              if (existing) return existing;
+              return prisma.domain.create({ data: { userId: owner.id, url, brand: brand ?? host } });
+            })()
+          : await prisma.domain.upsert({
+              where: { id: `anon-${host}` },
+              update: { url },
+              create: { id: `anon-${host}`, url, brand: brand ?? host },
+            }).catch(async () => {
+              const existing = await prisma.domain.findFirst({ where: { url } });
+              if (existing) return existing;
+              return prisma.domain.create({ data: { url, brand: brand ?? host } });
+            });
         await prisma.audit.create({
           data: {
             domainId: (domain as any).id,

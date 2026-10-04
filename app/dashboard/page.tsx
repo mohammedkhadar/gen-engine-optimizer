@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
 import { TrendingUp, Bell, Plus, Zap } from "lucide-react";
+import { loadCachedAudit, saveCachedAudit } from "@/lib/audit-cache";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -48,19 +49,20 @@ const DEFAULT_CATS = [
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
   useEffect(() => {
-    const cached = localStorage.getItem("rankai:lastAudit");
-    if (cached) { try { setAudit(JSON.parse(cached)); return; } catch {} }
-    // No local cache (new device/browser): fall back to latest server audit.
-    fetch("/api/history")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        const latest = d?.audits?.[0];
-        if (latest?.url) {
-          setAudit(latest);
-          try { localStorage.setItem("rankai:lastAudit", JSON.stringify(latest)); } catch {}
-        }
-      })
-      .catch(() => {});
+    // Per-account restore: browser cache first, then this account's server history.
+    loadCachedAudit().then((data) => {
+      if (data?.url) { setAudit(data); return; }
+      fetch("/api/history")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const latest = d?.audits?.[0];
+          if (latest?.url) {
+            setAudit(latest);
+            saveCachedAudit(latest);
+          }
+        })
+        .catch(() => {});
+    });
   }, []);
 
   const cats: { label: string; score: number }[] = audit?.categories ?? DEFAULT_CATS;

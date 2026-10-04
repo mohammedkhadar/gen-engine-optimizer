@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { loadCachedAudit, saveCachedAudit } from "@/lib/audit-cache";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
 import { Loader2, Search, CheckCircle2, XCircle, Wrench } from "lucide-react";
 
@@ -33,7 +34,7 @@ function AuditInner() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Audit failed");
       setResult(data);
-      localStorage.setItem("rankai:lastAudit", JSON.stringify(data));
+      saveCachedAudit(data);
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
@@ -43,28 +44,21 @@ function AuditInner() {
     if (q) { setUrl(q); run(q); return; }
     // ?fresh=1 (New audit button): blank form, skip cached restore.
     if (params.get("fresh")) { setUrl(""); return; }
-    // No URL given (e.g. "View full audit" from overview): restore last result.
-    try {
-      const cached = localStorage.getItem("rankai:lastAudit");
-      if (cached) {
-        const data = JSON.parse(cached);
-        setResult(data);
-        if (data.url) setUrl(data.url);
-        return;
-      }
-    } catch {}
-    // No local cache (new device): latest server-side audit.
-    fetch("/api/history")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        const latest = d?.audits?.[0];
-        if (latest?.url) {
-          setResult(latest);
-          setUrl(latest.url);
-          try { localStorage.setItem("rankai:lastAudit", JSON.stringify(latest)); } catch {}
-        }
-      })
-      .catch(() => {});
+    // Restore this account's last result: browser cache, then server history.
+    loadCachedAudit().then((data) => {
+      if (data?.url) { setResult(data); setUrl(data.url); return; }
+      fetch("/api/history")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          const latest = d?.audits?.[0];
+          if (latest?.url) {
+            setResult(latest);
+            setUrl(latest.url);
+            saveCachedAudit(latest);
+          }
+        })
+        .catch(() => {});
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

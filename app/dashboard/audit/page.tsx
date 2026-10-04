@@ -40,7 +40,16 @@ function AuditInner() {
 
   useEffect(() => {
     const q = params.get("url");
-    if (q) { setUrl(q); run(q); }
+    if (q) { setUrl(q); run(q); return; }
+    // No URL given (e.g. "View full audit" from overview): restore last result.
+    try {
+      const cached = localStorage.getItem("rankai:lastAudit");
+      if (cached) {
+        const data = JSON.parse(cached);
+        setResult(data);
+        if (data.url) setUrl(data.url);
+      }
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

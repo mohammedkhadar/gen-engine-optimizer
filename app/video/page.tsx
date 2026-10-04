@@ -338,21 +338,37 @@ export default function VideoPage() {
     u.pitch = 1.05;
     speakingRef.current = true;
     let released = false;
+    let started = false;
+    const bornAt = Date.now();
     const timers: number[] = [];
+    const intervals: number[] = [];
     const release = (delay: number) => {
       if (released) return;
       released = true;
       timers.push(window.setTimeout(() => { speakingRef.current = false; }, delay));
     };
+    u.onstart = () => { started = true; };
     u.onend = () => release(2000);
     u.onerror = () => release(500);
-    // Backstop: generous duration estimate in case the end event lags or drops.
-    const estMs = Math.max(4000, (text.length / 12) * 1000) + 4000;
+    // Primary end detection: poll the engine state (flips promptly even when
+    // the end event lags). Guarded by onstart + minimum airtime so the
+    // pre-speech moment can't false-trigger.
+    intervals.push(window.setInterval(() => {
+      if (started && Date.now() - bornAt > 2000 && !window.speechSynthesis.speaking) {
+        started = false;
+        release(2000);
+      }
+    }, 250));
+    // Backstop: generous duration estimate in case polling also stalls.
+    const estMs = Math.max(6000, (text.length / 13) * 1000) + 3000;
     timers.push(window.setTimeout(() => release(0), estMs));
     // Absolute failsafe: never freeze longer than 90s.
     timers.push(window.setTimeout(() => { released = true; speakingRef.current = false; }, 90000));
     window.speechSynthesis.speak(u);
-    return () => { timers.forEach((id) => clearTimeout(id)); };
+    return () => {
+      timers.forEach((id) => clearTimeout(id));
+      intervals.forEach((id) => clearInterval(id));
+    };
   };
 
   // Unlock audio on the first interaction anywhere: start music. Narration

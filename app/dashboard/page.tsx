@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
-import { TrendingUp, Bell, Plus, X } from "lucide-react";
+import { TrendingUp, Bell, Plus } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -47,8 +47,6 @@ const DEFAULT_CATS = [
 
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
-  const [tipKey, setTipKey] = useState<string | null>(null);
-  const [pinned, setPinned] = useState<string | null>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
     if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
@@ -57,31 +55,25 @@ export default function DashboardOverview() {
   const cats: { label: string; score: number }[] = audit?.categories ?? DEFAULT_CATS;
   const radar = cats.map((c: any) => ({ k: SHORT[c.label] ?? c.label.split(" ")[0], v: c.score }));
 
-  // Custom axis label: pillar name + "?" badge. Tap jumps to the explainer
-  // below (touch); hover details live on the pill strip (stable HTML events).
-  const AxisLabel = ({ x, y, payload }: any) => {
-    const k: string = payload?.value ?? "";
+  // Custom tooltip: hovering any radar vertex explains that pillar —
+  // name, score, what it measures, and its top fix.
+  const PillarTip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const k: string = payload[0]?.payload?.k ?? "";
+    const v: number = payload[0]?.payload?.v ?? 0;
     const info = PILLAR_INFO[k];
+    if (!info) return null;
     return (
-      <g
-        transform={`translate(${x},${y})`}
-        onClick={(e) => { e.stopPropagation(); setPinned((p) => (p === k ? null : k)); setTipKey(null); }}
-        style={{ cursor: info ? "pointer" : "default" }}
-      >
-        {info && <title>{`${info.full} — tap for details`}</title>}
-        <text textAnchor="end" x={-11} dy={3.5} fill="#94a3b8" fontSize={11}>{k}</text>
-        {info && (
-          <>
-            <circle cx={1} cy={0} r={8.5} fill="rgba(139,92,246,0.18)" stroke="#8b5cf6" strokeWidth={1.2} />
-            <text textAnchor="middle" x={1} dy={3.5} fill="#c4b5fd" fontSize={10} fontWeight="bold">?</text>
-          </>
-        )}
-      </g>
+      <div className="w-64 rounded-xl border border-violet-500/40 bg-[#141B2E]/95 p-3 shadow-2xl">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs font-semibold text-violet-200">{info.full}</div>
+          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white">{v}</span>
+        </div>
+        <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{info.what}</p>
+        <p className="mt-1 text-[11px] text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{info.fix}</p>
+      </div>
     );
   };
-  const activeTip = pinned ?? tipKey;
-  const activeInfo = activeTip ? PILLAR_INFO[activeTip] : null;
-  // (tooltip content rendered inline in the chart container below)
 
   return (
     <div className="space-y-6">
@@ -155,50 +147,17 @@ export default function DashboardOverview() {
         <Card>
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">GEO pillars radar</h3>
-            <span className="text-[11px] text-slate-500">hover a pillar for meaning</span>
+            <span className="text-[11px] text-slate-500">hover the chart for meaning</span>
           </div>
           <div className="mt-2 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radar}>
                 <PolarGrid stroke="rgba(255,255,255,0.15)" />
-                <PolarAngleAxis dataKey="k" tick={<AxisLabel />} />
+                <PolarAngleAxis dataKey="k" tick={{ fill: "#94a3b8", fontSize: 11 }} />
                 <ReRadar dataKey="v" stroke="#34d399" fill="#34d399" fillOpacity={0.25} />
+                <Tooltip content={<PillarTip />} />
               </RadarChart>
             </ResponsiveContainer>
-          </div>
-          <div className="mt-1 flex flex-wrap gap-1.5" onMouseLeave={() => setTipKey(null)}>
-            {cats.map((c: any) => {
-              const k: string = SHORT[c.label] ?? c.label.split(" ")[0];
-              const active = activeTip === k;
-              return (
-                <button
-                  key={k}
-                  onMouseEnter={() => { setTipKey(k); }}
-                  onClick={() => { setPinned((p) => (p === k ? null : k)); setTipKey(null); }}
-                  className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${active ? "border-violet-400/60 bg-violet-500/20 text-violet-200" : "border-white/10 bg-white/5 text-slate-400 hover:text-slate-200"}`}
-                >
-                  {k} · {c.score}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-2 min-h-[76px] rounded-xl bg-white/[0.03] p-3">
-            {activeInfo ? (
-              <>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-violet-200">{activeInfo.full}</div>
-                  {pinned && (
-                    <button onClick={() => setPinned(null)} className="rounded-full p-0.5 text-slate-500 hover:bg-white/10 hover:text-white">
-                      <X size={13} />
-                    </button>
-                  )}
-                </div>
-                <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{activeInfo.what}</p>
-                <p className="mt-1 text-[11px] text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{activeInfo.fix}</p>
-              </>
-            ) : (
-              <p className="text-[11px] text-slate-500">Hover a pillar pill — or tap a label&apos;s ? on the chart — to see what it measures and its top fix.</p>
-            )}
           </div>
         </Card>
       </div>

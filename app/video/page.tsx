@@ -170,6 +170,7 @@ export default function VideoPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [voiceURI, setVoiceURI] = useState("");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [voicesReady, setVoicesReady] = useState(false);
   const timer = useRef<NodeJS.Timeout | null>(null);
   const speakingRef = useRef(false);
   const audioRef = useRef<{ ctx: AudioContext; gain: GainNode; sched?: number } | null>(null);
@@ -179,10 +180,17 @@ export default function VideoPage() {
   // unlocks itself on the first tap/click/keypress anywhere on the page.
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const load = () => setVoices(window.speechSynthesis.getVoices());
+    const load = () => {
+      const list = window.speechSynthesis.getVoices();
+      setVoices(list);
+      if (list.length) setVoicesReady(true);
+    };
     load();
     window.speechSynthesis.onvoiceschanged = load;
+    // fallback: never hold the video longer than 4s waiting for voices
+    const failsafe = setTimeout(() => setVoicesReady(true), 4000);
     return () => {
+      clearTimeout(failsafe);
       window.speechSynthesis.cancel();
       if (audioRef.current?.sched) clearInterval(audioRef.current.sched);
       audioRef.current?.ctx.close().catch(() => {});
@@ -337,16 +345,14 @@ export default function VideoPage() {
     window.speechSynthesis.speak(u);
   };
 
-  // Unlock audio on the first interaction anywhere: start music and
-  // (re)speak the current scene, since pre-gesture speech gets discarded.
+  // Unlock audio on the first interaction anywhere: start music. Narration
+  // itself starts via the effect below once voices are settled.
   useEffect(() => {
     if (unlocked || !soundOn) return;
     const unlock = () => {
       setUnlocked(true);
       if (musicOn) startMusic();
       else audioRef.current?.ctx.resume().catch(() => {});
-      window.speechSynthesis?.cancel();
-      speakScene(idxRef.current);
     };
     const opts = { once: true } as const;
     window.addEventListener("pointerdown", unlock, opts);
@@ -359,8 +365,9 @@ export default function VideoPage() {
   }, [unlocked, soundOn, musicOn]);
 
   // Speak the current scene's narration whenever the scene changes (if sound on).
-  // The scene clock freezes while speaking (see timer), so long narrations —
-  // e.g. scene 1 — always play out fully before advancing. Overtime beyond the
+  // Waits for both unlock AND the settled voice list, so scene 1 never speaks
+  // with a half-loaded fallback voice. The scene clock freezes while waiting
+  // or speaking (see timer), so nothing gets cut off. Overtime beyond the
   // planned duration is added to the displayed total so the tracker stays live.
   useEffect(() => {
     const spent = wallRef.current - sceneStartRef.current;
@@ -368,6 +375,10 @@ export default function VideoPage() {
     if (extra > 0.5) setOver((o) => o + extra);
     sceneStartRef.current = wallRef.current;
     prevIdxRef.current = idx;
+    if (!unlocked || !voicesReady) {
+      speakingRef.current = soundOn;
+      return () => { speakingRef.current = false; };
+    }
     if (!soundOn || typeof window === "undefined" || !("speechSynthesis" in window)) return;
     speakScene(idx);
     return () => {
@@ -375,7 +386,7 @@ export default function VideoPage() {
       speakingRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, soundOn]);
+  }, [idx, soundOn, unlocked, voicesReady]);
 
   const copyScript = () => {
     navigator.clipboard.writeText(SCENES.map((s, i) => `SCENE ${i + 1} (${s.kicker}, ${s.dur}s)\n${s.narration}`).join("\n\n"));

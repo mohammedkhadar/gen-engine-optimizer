@@ -173,6 +173,9 @@ export default function VideoPage() {
   const [voiceURI, setVoiceURI] = useState("");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [voicesReady, setVoicesReady] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const retriesRef = useRef(0);
+  const retrySceneRef = useRef(-1);
   const [showDbg, setShowDbg] = useState(false);
   const [dbg, setDbg] = useState("");
   const timer = useRef<NodeJS.Timeout | null>(null);
@@ -396,8 +399,7 @@ export default function VideoPage() {
     speakNext();
     // Primary end detection: word-boundary events stop the instant audio stops.
     // Keyed on the events themselves (not onstart, which some browsers never
-    // fire even while audio plays). If this browser emits no boundary events
-    // at all, fall back to engine state + the duration estimate below.
+    // fire even while audio plays).
     intervals.push(window.setInterval(() => {
       if (released || Date.now() - bornAt < 3000) return;
       if (boundaryRef.current > 0) {
@@ -406,6 +408,20 @@ export default function VideoPage() {
         release(2000);
       }
     }, 250));
+    // Recovery: if the engine claims "speaking" for 10s with zero word events,
+    // the speech queue is wedged (a Chrome failure mode cancel() can't clear
+    // from outside). Nuke it and re-run this scene's narration, max twice —
+    // then advance rather than hang forever.
+    intervals.push(window.setInterval(() => {
+      if (released || Date.now() - bornAt < 10000) return;
+      if (window.speechSynthesis.speaking && boundaryRef.current === 0 && retriesRef.current < 2) {
+        retriesRef.current++;
+        try { window.speechSynthesis.cancel(); } catch {}
+        window.setTimeout(() => setRetryKey((k) => k + 1), 400);
+      } else if (window.speechSynthesis.speaking && boundaryRef.current === 0 && retriesRef.current >= 2) {
+        release(500);
+      }
+    }, 1000));
     // Backstop: generous duration estimate in case polling also stalls.
     const estMs = Math.max(6000, (text.length / 13) * 1000) + 3000;
     timers.push(window.setTimeout(() => release(0), estMs));
@@ -447,6 +463,10 @@ export default function VideoPage() {
     if (extra > 0.5) setOver((o) => o + extra);
     sceneStartRef.current = wallRef.current;
     prevIdxRef.current = idx;
+    if (retrySceneRef.current !== idx) {
+      retrySceneRef.current = idx;
+      retriesRef.current = 0;
+    }
     if (!unlocked || !voicesReady) {
       speakingRef.current = soundOn;
       return () => { speakingRef.current = false; };
@@ -459,7 +479,7 @@ export default function VideoPage() {
       speakingRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idx, soundOn, unlocked, voicesReady]);
+  }, [idx, soundOn, unlocked, voicesReady, retryKey]);
 
   // Temporary diagnostics: open /video?debug=1 to see live narration state.
   useEffect(() => {

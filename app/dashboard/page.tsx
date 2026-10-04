@@ -119,7 +119,7 @@ export default function DashboardOverview() {
           {(audit?.topActions ?? [
             { title: "Add schema bundle (JSON-LD)", impact: "+12–18 pts", detail: "Organization + FAQPage + Article." },
             { title: "Add AI excerpt & FAQ", impact: "+8–12 pts", detail: "40–60 word direct answer at top." },
-            { title: "Publish /llms.txt + allow AI bots", impact: "+4–7 pts", detail: "Whitelist GPTBot, PerplexityBot." },
+            { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", detail: "Whitelist GPTBot, PerplexityBot." },
           ]).slice(0, 3).map((a: any, i: number) => (
             <div key={i} className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
               <div className="flex items-center gap-2">

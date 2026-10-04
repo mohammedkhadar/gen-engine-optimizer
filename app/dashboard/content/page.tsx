@@ -10,6 +10,10 @@ export default function ContentPage() {
   const [fetchNote, setFetchNote] = useState("");
   const [out, setOut] = useState<any>(null);
   const [copied, setCopied] = useState("");
+
+  // Shared chrome filter: nav/login/cart/cookie boilerplate must never become
+  // an excerpt, answer, or schema text.
+  const JUNK_TEST = /skip to content|log in|sign in|sign up|create account|shopping cart|\bcart\b|\bmenu\b|cookies|newsletter|subscribe|follow us|all rights reserved|terms of (service|use)|privacy policy/i;
   const [llmsBrand, setLlmsBrand] = useState("Acme");
   const [llmsDomain, setLlmsDomain] = useState("acme.com");
   const [llmsTagline, setLlmsTagline] = useState("What we do, who we serve, and why we're the trusted choice.");
@@ -44,7 +48,7 @@ export default function ContentPage() {
   // Chrome (nav/login/cart/cookie boilerplate) is filtered first so it can
   // never become an "answer"; price matches require a currency figure tied to
   // pricing words, so testimonials like "$4M+ business" don't qualify.
-  const JUNK = /skip to content|log in|sign in|sign up|create account|shopping cart|\bcart\b|\bmenu\b|cookies|newsletter|subscribe|follow us|all rights reserved|terms of (service|use)|privacy policy/i;
+  const JUNK = JUNK_TEST;
   const buildFaqs = (raw: string) => {
     const sentences = raw
       .replace(/\s+/g, " ")
@@ -82,7 +86,21 @@ export default function ContentPage() {
   };
 
   const optimize = () => {
-    const excerpt = `TL;DR: ${input.trim().slice(0, 180)} — verified for 2026, with transparent pricing, real reviews, and same-week booking.`;
+    // Excerpt: first substantive sentences (hero copy), never nav fragments,
+    // never invented claims — only what the page actually says.
+    const clean = input.replace(/\s+/g, " ").trim();
+    const substantive = clean
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 40 && s.length < 300 && !JUNK_TEST.test(s));
+    let excerptBody = "";
+    for (const s of substantive) {
+      if ((excerptBody + " " + s).trim().length > 320) break;
+      excerptBody = (excerptBody + " " + s).trim();
+      if (excerptBody.length > 180 && substantive.indexOf(s) >= 1) break;
+    }
+    if (!excerptBody) excerptBody = clean.slice(0, 200);
+    const excerpt = `TL;DR: ${excerptBody}`;
     const faqs = buildFaqs(input);
     const schema = {
       "@context": "https://schema.org",

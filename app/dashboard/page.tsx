@@ -164,7 +164,7 @@ export default function DashboardOverview() {
               </div>
               <div className="mt-2 text-sm font-semibold">{a.title}</div>
               <div className="mt-1 text-xs text-slate-400">{a.detail}</div>
-              <Link href="/dashboard/audit" className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">Fix now →</Link>
+              <Link href={a.link ?? "/dashboard/audit"} className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">{a.linkLabel ?? "Fix now →"}</Link>
             </div>
           ))}
         </div>

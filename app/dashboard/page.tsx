@@ -79,7 +79,7 @@ export default function DashboardOverview() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Good morning, Acme 👋</h1>
+          <h1 className="text-2xl font-bold">AI visibility overview</h1>
           <p className="text-sm text-slate-400">Here&apos;s how AI engines see your business today.</p>
         </div>
         <div className="flex gap-2">

@@ -345,16 +345,22 @@ export default function VideoPage() {
     let started = false;
     let lastBoundary = 0;
     const bornAt = Date.now();
+    // When speech ends, jump the scene clock to just before this scene's end
+    // so the slide transitions promptly instead of playing out leftover time.
+    const endAt = SCENES.slice(0, i + 1).reduce((a, x) => a + x.dur, 0);
     const timers: number[] = [];
     const intervals: number[] = [];
     const release = (delay: number) => {
       if (released) return;
       released = true;
-      timers.push(window.setTimeout(() => { speakingRef.current = false; }, delay));
+      timers.push(window.setTimeout(() => {
+        speakingRef.current = false;
+        if (idxRef.current === i) setT(Math.max(0, endAt - 0.8));
+      }, delay));
     };
     u.onstart = () => { started = true; lastBoundary = Date.now(); boundaryRef.current = lastBoundary; bornRef.current = bornAt; };
     u.onboundary = () => { lastBoundary = Date.now(); boundaryRef.current = lastBoundary; };
-    u.onend = () => release(2000);
+    u.onend = () => release(1200);
     u.onerror = () => release(500);
     // Primary end detection: word-boundary events stop the instant audio stops.
     // Keyed on the events themselves (not onstart, which some browsers never
@@ -432,7 +438,7 @@ export default function VideoPage() {
     const id = window.setInterval(() => {
       const s = window.speechSynthesis;
       setDbg(
-        `scene=${idxRef.current} t=${t.toFixed?.(0) ?? "?"} frozen=${speakingRef.current} ` +
+        `scene=${idxRef.current} wall=${wallRef.current.toFixed(0)} frozen=${speakingRef.current} ` +
         `synth.speaking=${s?.speaking} pending=${s?.pending} ` +
         `boundaryAge=${boundaryRef.current ? ((Date.now() - boundaryRef.current) / 1000).toFixed(1) + "s" : "never"} ` +
         `voices=${voices.length} ready=${voicesReady}`

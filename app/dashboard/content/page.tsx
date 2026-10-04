@@ -174,6 +174,22 @@ export default function ContentPage() {
           <Wand2 size={15} /> Make it citable →
         </button>
       </Card>
+      <Card>
+        <h3 className="font-semibold">Authorship & sources kit</h3>
+        <p className="mt-1 text-xs text-slate-400">The manual half of E-E-A-T: who wrote this, when, and what backs it. Copy the byline pattern, adapt the bracketed parts.</p>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-[11px] text-slate-500">Copy-paste byline block:</span>
+          <button onClick={() => copy("byline", `<p>By <a href="[LinkedIn URL]" rel="author">[Full Name]</a>, [Title] · Published [YYYY-MM-DD] · Updated [YYYY-MM-DD]</p>`)} className="text-xs text-slate-400 hover:text-white flex gap-1 items-center">
+            {copied === "byline" ? <Check size={13} /> : <Copy size={13} />} Copy HTML
+          </button>
+        </div>
+        <pre className="mt-1 overflow-x-auto rounded-lg bg-black/50 p-3 text-[11px] text-emerald-200">{`<p>By <a href="[LinkedIn URL]" rel="author">[Full Name]</a>, [Title] · Published [YYYY-MM-DD] · Updated [YYYY-MM-DD]</p>`}</pre>
+        <ul className="mt-2 space-y-1.5 text-xs text-slate-300">
+          {["Link the name to a real profile (LinkedIn/about page) with credentials", "Show Published + Updated dates on every key page", "Add 3+ outbound links to primary sources (.edu, docs, research) — not competitors"].map((c) => (
+            <li key={c} className="flex gap-2"><Check size={14} className="mt-0.5 text-emerald-400" />{c}</li>
+          ))}
+        </ul>
+      </Card>
       {out && (
         <div className="grid gap-4 *:min-w-0">
           <Card>

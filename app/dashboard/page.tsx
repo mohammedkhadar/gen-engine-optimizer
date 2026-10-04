@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
-import { TrendingUp, Bell, Plus } from "lucide-react";
+import { TrendingUp, Bell, Plus, X } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -27,43 +27,60 @@ const PILLAR_INFO: Record<string, { full: string; what: string; fix: string }> =
   "Citability": { full: "Citability & Evidence (10%)", what: "Is there anything shaped like a quotable fact? Stats, one-liners, tables and expert quotes answers can lift with a link.", fix: "One stat + source link per section, quotable takeaways." },
 };
 
+const SHORT: Record<string, string> = {
+  "Crawlability & Technical": "Crawlability",
+  "Structured Data & Machine Readability": "Structured",
+  "E-E-A-T & Trust": "E-E-A-T",
+  "Answer-Ready Content": "Answer-Ready",
+  "Freshness & Reputation": "Freshness",
+  "Citability & Evidence": "Citability",
+};
+
+const DEFAULT_CATS = [
+  { label: "Crawlability & Technical", score: 72 },
+  { label: "Structured Data & Machine Readability", score: 44 },
+  { label: "E-E-A-T & Trust", score: 68 },
+  { label: "Answer-Ready Content", score: 81 },
+  { label: "Freshness & Reputation", score: 60 },
+  { label: "Citability & Evidence", score: 57 },
+];
+
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
   const [tipKey, setTipKey] = useState<string | null>(null);
-  const [pinnedTip, setPinnedTip] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<string | null>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
     if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
   }, []);
 
-  const radar = audit?.categories?.map((c: any) => ({ k: c.label.split(" ")[0], v: c.score })) ?? [
-    { k: "Crawlability", v: 72 }, { k: "Structured", v: 44 }, { k: "E-E-A-T", v: 68 },
-    { k: "Answer-Ready", v: 81 }, { k: "Freshness", v: 60 }, { k: "Citability", v: 57 },
-  ];
+  const cats: { label: string; score: number }[] = audit?.categories ?? DEFAULT_CATS;
+  const radar = cats.map((c: any) => ({ k: SHORT[c.label] ?? c.label.split(" ")[0], v: c.score }));
 
-  // Custom axis label: pillar name + "?" — hover shows a cursor-following
-  // tooltip, tap pins it (touchscreens).
+  // Custom axis label: pillar name + "?" badge. Tap jumps to the explainer
+  // below (touch); hover details live on the pill strip (stable HTML events).
   const AxisLabel = ({ x, y, payload }: any) => {
     const k: string = payload?.value ?? "";
     const info = PILLAR_INFO[k];
     return (
       <g
         transform={`translate(${x},${y})`}
-        onClick={(e) => { e.stopPropagation(); setPinnedTip((p) => (p === k ? null : k)); setTipKey(null); }}
-        onMouseEnter={() => { if (info) { setTipKey(k); setPinnedTip(null); } }}
+        onClick={(e) => { e.stopPropagation(); setPinned((p) => (p === k ? null : k)); setTipKey(null); }}
         style={{ cursor: info ? "pointer" : "default" }}
       >
         {info && <title>{`${info.full} — tap for details`}</title>}
-        <text textAnchor="middle" fill="#94a3b8" fontSize={11} dy={-9}>{k}</text>
+        <text textAnchor="end" x={-11} dy={3.5} fill="#94a3b8" fontSize={11}>{k}</text>
         {info && (
           <>
-            <circle cy={6} r={8.5} fill="rgba(139,92,246,0.18)" stroke="#8b5cf6" strokeWidth={1.2} />
-            <text textAnchor="middle" dy={9.5} fill="#c4b5fd" fontSize={10} fontWeight="bold">?</text>
+            <circle cx={1} cy={0} r={8.5} fill="rgba(139,92,246,0.18)" stroke="#8b5cf6" strokeWidth={1.2} />
+            <text textAnchor="middle" x={1} dy={3.5} fill="#c4b5fd" fontSize={10} fontWeight="bold">?</text>
           </>
         )}
       </g>
     );
   };
+  const activeTip = pinned ?? tipKey;
+  const activeInfo = activeTip ? PILLAR_INFO[activeTip] : null;
   // (tooltip content rendered inline in the chart container below)
 
   return (
@@ -138,12 +155,9 @@ export default function DashboardOverview() {
         <Card>
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">GEO pillars radar</h3>
-            <span className="text-[11px] text-slate-500">hover a label for meaning</span>
+            <span className="text-[11px] text-slate-500">hover a pillar for meaning</span>
           </div>
-          <div
-            className="relative mt-2 h-64"
-            onMouseLeave={() => { setTipKey(null); setPinnedTip(null); }}
-          >
+          <div className="mt-2 h-64">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radar}>
                 <PolarGrid stroke="rgba(255,255,255,0.15)" />
@@ -151,14 +165,39 @@ export default function DashboardOverview() {
                 <ReRadar dataKey="v" stroke="#34d399" fill="#34d399" fillOpacity={0.25} />
               </RadarChart>
             </ResponsiveContainer>
-            {(tipKey || pinnedTip) && PILLAR_INFO[tipKey ?? pinnedTip ?? ""] && (
-              <div
-                className="pointer-events-none absolute left-1/2 top-2 z-10 w-64 -translate-x-1/2 rounded-xl border border-violet-500/40 bg-[#141B2E]/95 p-3 shadow-2xl backdrop-blur-xl"
-              >
-                <div className="text-xs font-semibold text-violet-200">{PILLAR_INFO[(tipKey ?? pinnedTip) as string].full}</div>
-                <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{PILLAR_INFO[(tipKey ?? pinnedTip) as string].what}</p>
-                <p className="mt-1 text-[11px] text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{PILLAR_INFO[(tipKey ?? pinnedTip) as string].fix}</p>
-              </div>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1.5" onMouseLeave={() => setTipKey(null)}>
+            {cats.map((c: any) => {
+              const k: string = SHORT[c.label] ?? c.label.split(" ")[0];
+              const active = activeTip === k;
+              return (
+                <button
+                  key={k}
+                  onMouseEnter={() => { setTipKey(k); }}
+                  onClick={() => { setPinned((p) => (p === k ? null : k)); setTipKey(null); }}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${active ? "border-violet-400/60 bg-violet-500/20 text-violet-200" : "border-white/10 bg-white/5 text-slate-400 hover:text-slate-200"}`}
+                >
+                  {k} · {c.score}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 min-h-[76px] rounded-xl bg-white/[0.03] p-3">
+            {activeInfo ? (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-xs font-semibold text-violet-200">{activeInfo.full}</div>
+                  {pinned && (
+                    <button onClick={() => setPinned(null)} className="rounded-full p-0.5 text-slate-500 hover:bg-white/10 hover:text-white">
+                      <X size={13} />
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] leading-relaxed text-slate-300">{activeInfo.what}</p>
+                <p className="mt-1 text-[11px] text-slate-300"><span className="font-semibold text-emerald-300">Fix: </span>{activeInfo.fix}</p>
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-500">Hover a pillar pill — or tap a label&apos;s ? on the chart — to see what it measures and its top fix.</p>
             )}
           </div>
         </Card>

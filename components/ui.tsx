@@ -96,7 +96,6 @@ export function Nav({ ctaHref = "/dashboard" }: { ctaHref?: string }) {
           <Link href="/#how" className="hover:text-white">How it works</Link>
           <Link href="/research" className="hover:text-white">Research</Link>
           <Link href="/pricing" className="hover:text-white">Pricing</Link>
-          <Link href="/dashboard" className="hover:text-white">Live demo</Link>
         </nav>
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="hidden text-sm text-slate-300 hover:text-white sm:block">Sign in</Link>

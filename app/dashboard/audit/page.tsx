@@ -16,7 +16,7 @@ export default function AuditPage() {
 
 function AuditInner() {
   const params = useSearchParams();
-  const [url, setUrl] = useState(params.get("url") ?? "https://example.com");
+  const [url, setUrl] = useState(params.get("url") ?? "");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");

@@ -1,8 +1,8 @@
-"use client";
-import { useState } from "react";
 import Link from "next/link";
-import { Nav, Footer, Card } from "@/components/ui";
-import { Check, Loader2 } from "lucide-react";
+import { Nav } from "@/components/Nav";
+import { Footer, Card } from "@/components/ui";
+import { CheckoutButton } from "@/components/CheckoutButton";
+import { Check } from "lucide-react";
 
 const tiers = [
   { id: "STARTER", name: "Starter", price: "$29", desc: "For local businesses getting cited for the first time. Audit → fix list → done.", feats: ["1 domain, full fix list", "50 prompt tests/mo proof-tracking", "Schema + FAQ + llms.txt generator", "Citation gained/lost alerts"], cta: "Fix my site" },
@@ -11,22 +11,6 @@ const tiers = [
 ];
 
 export default function PricingPage() {
-  const [busy, setBusy] = useState<string | null>(null);
-
-  const checkout = async (plan: string) => {
-    setBusy(plan);
-    try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      }).then((r) => r.json());
-      window.location.href = res.url;
-    } finally {
-      setBusy(null);
-    }
-  };
-
   return (
     <div>
       <Nav />
@@ -44,10 +28,7 @@ export default function PricingPage() {
               <ul className="mt-4 space-y-2 text-sm">
                 {t.feats.map((f) => <li key={f} className="flex gap-2"><Check size={16} className="mt-0.5 text-emerald-400" />{f}</li>)}
               </ul>
-              <button onClick={() => checkout(t.id)} disabled={!!busy}
-                className={`mt-5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold ${t.hot ? "bg-white text-black" : "glass"}`}>
-                {busy === t.id && <Loader2 size={14} className="animate-spin" />}{t.cta}
-              </button>
+              <CheckoutButton plan={t.id} label={t.cta} hot={t.hot} />
             </Card>
           ))}
         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Nav, Footer, Card, Badge, SectionTitle } from "@/components/ui";
+import { Nav } from "@/components/Nav";
+import { Footer, Card, Badge, SectionTitle } from "@/components/ui";
 import { FlaskConical, BookOpen, FileText, ArrowUpRight } from "lucide-react";
 
 const pillars = [

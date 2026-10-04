@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Nav, Footer, Card, Badge, SectionTitle, Progress } from "@/components/ui";
+import { Nav } from "@/components/Nav";
+import { Footer, Card, Badge, SectionTitle, Progress } from "@/components/ui";
 import { AuditWidget } from "@/components/AuditWidget";
 import {
   Sparkles, Radar, MessagesSquare, Trophy, FileText, Quote,

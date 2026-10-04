@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Nav } from "@/components/ui";
+import { Nav } from "@/components/Nav";
 import { SignInButton } from "@/components/SignInButton";
 import { authEnabled } from "@/lib/auth";
 

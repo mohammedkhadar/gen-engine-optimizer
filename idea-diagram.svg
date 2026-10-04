@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="940" viewBox="0 0 1600 940">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B0F1A"/>
+      <stop offset="1" stop-color="#141B2E"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#818CF8"/>
+      <stop offset="0.5" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.3" r="0.75">
+      <stop offset="0" stop-color="#7C3AED" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="940" fill="url(#bg)"/>
+  <rect width="1600" height="940" fill="url(#glow)"/>
+
+  <!-- header -->
+  <g transform="translate(80,52)">
+    <rect width="56" height="56" rx="13" fill="url(#accent)"/>
+    <text x="28" y="40" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#0B0F1A">R</text>
+    <text x="70" y="40" font-family="Arial,sans-serif" font-size="30" font-weight="bold" fill="#F1F5F9">RankAI — from invisible to cited</text>
+  </g>
+
+  <!-- BEFORE panel -->
+  <g>
+    <rect x="80" y="132" width="650" height="470" rx="22" fill="#F87171" fill-opacity="0.05" stroke="#F87171" stroke-opacity="0.4"/>
+    <text x="112" y="182" font-family="Arial,sans-serif" font-size="24" font-weight="bold" fill="#F87171">✕ BEFORE — invisible</text>
+    <rect x="112" y="202" width="586" height="58" rx="14" fill="#8B5CF6" fill-opacity="0.28"/>
+    <text x="405" y="239" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="#F1F5F9">Buyer: “Best CRM for startups?”</text>
+    <text x="112" y="300" font-family="Arial,sans-serif" font-size="20" fill="#94A3B8">AI answer cites:</text>
+    <rect x="112" y="314" width="586" height="52" rx="12" fill="#34D399" fill-opacity="0.13" stroke="#34D399" stroke-opacity="0.45"/>
+    <text x="132" y="347" font-family="Arial,sans-serif" font-size="21" fill="#F1F5F9">✓ Competitor A — competitor-a.com/vs</text>
+    <rect x="112" y="374" width="586" height="52" rx="12" fill="#34D399" fill-opacity="0.13" stroke="#34D399" stroke-opacity="0.45"/>
+    <text x="132" y="407" font-family="Arial,sans-serif" font-size="21" fill="#F1F5F9">✓ Competitor B — g2.com review</text>
+    <rect x="112" y="434" width="586" height="52" rx="12" fill="#F87171" fill-opacity="0.1" stroke="#F87171" stroke-opacity="0.4"/>
+    <text x="132" y="467" font-family="Arial,sans-serif" font-size="21" fill="#F87171">✕ You — not mentioned, no traffic</text>
+    <text x="112" y="522" font-family="Arial,sans-serif" font-size="20" fill="#64748B">Why: no schema · no quotable answers</text>
+    <text x="112" y="550" font-family="Arial,sans-serif" font-size="20" fill="#64748B">no FAQs · anonymous content</text>
+  </g>
+
+  <!-- bridge -->
+  <g>
+    <rect x="750" y="132" width="100" height="470" rx="18" fill="url(#accent)" fill-opacity="0.14"/>
+    <text x="800" y="225" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="bold" fill="#A78BFA">RANKAI</text>
+    <g font-family="Arial,sans-serif" text-anchor="middle">
+      <rect x="762" y="300" width="76" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+      <text x="800" y="327" font-size="20" font-weight="bold" fill="#F1F5F9">audit</text>
+      <text x="800" y="372" font-size="22" fill="#A78BFA">↓</text>
+      <rect x="762" y="384" width="76" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+      <text x="800" y="411" font-size="20" font-weight="bold" fill="#F1F5F9">track</text>
+      <text x="800" y="456" font-size="22" fill="#A78BFA">↓</text>
+      <rect x="762" y="468" width="76" height="40" rx="20" fill="#FFFFFF" fill-opacity="0.08"/>
+      <text x="800" y="495" font-size="20" font-weight="bold" fill="#F1F5F9">fix</text>
+      <text x="800" y="540" font-size="22" fill="#34D399">↓</text>
+    </g>
+  </g>
+
+  <!-- AFTER panel -->
+  <g>
+    <rect x="870" y="132" width="650" height="470" rx="22" fill="#34D399" fill-opacity="0.05" stroke="#34D399" stroke-opacity="0.45"/>
+    <text x="902" y="182" font-family="Arial,sans-serif" font-size="24" font-weight="bold" fill="#34D399">✓ AFTER — cited</text>
+    <rect x="902" y="202" width="586" height="58" rx="14" fill="#8B5CF6" fill-opacity="0.28"/>
+    <text x="1195" y="239" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" fill="#F1F5F9">Buyer: “Best CRM for startups?”</text>
+    <text x="902" y="300" font-family="Arial,sans-serif" font-size="20" fill="#94A3B8">AI answer cites:</text>
+    <rect x="902" y="314" width="586" height="52" rx="12" fill="#34D399" fill-opacity="0.16" stroke="#34D399" stroke-opacity="0.55"/>
+    <text x="922" y="347" font-family="Arial,sans-serif" font-size="21" font-weight="bold" fill="#F1F5F9">✓ You — acme.com/pricing</text>
+    <rect x="902" y="374" width="586" height="52" rx="12" fill="#34D399" fill-opacity="0.13" stroke="#34D399" stroke-opacity="0.45"/>
+    <text x="922" y="407" font-family="Arial,sans-serif" font-size="21" fill="#F1F5F9">✓ Competitor A — competitor-a.com/vs</text>
+    <rect x="902" y="434" width="586" height="52" rx="12" fill="#FFFFFF" fill-opacity="0.04" stroke="#FFFFFF" stroke-opacity="0.15"/>
+    <text x="922" y="467" font-family="Arial,sans-serif" font-size="21" fill="#94A3B8">· Competitor B — bumped off</text>
+    <text x="902" y="522" font-family="Arial,sans-serif" font-size="20" fill="#34D399">Fixed with: FAQ schema · AI excerpt</text>
+    <text x="902" y="550" font-family="Arial,sans-serif" font-size="20" fill="#34D399">llms.txt · comparison tables</text>
+  </g>
+
+  <!-- bottom strip -->
+  <g>
+    <rect x="80" y="640" width="1440" height="128" rx="20" fill="#FFFFFF" fill-opacity="0.03" stroke="#FFFFFF" stroke-opacity="0.12"/>
+    <text x="120" y="690" font-family="Arial,sans-serif" font-size="23" font-weight="bold" fill="#F1F5F9">How it works: GEO score → daily tracking → one-click fixes → citations climb</text>
+    <text x="120" y="728" font-family="Arial,sans-serif" font-size="21" fill="#94A3B8">Answer-ready 25% · Structured data 20% · E-E-A-T 20% · Crawlability 15% · Freshness 10% · Citability 10%</text>
+  </g>
+
+  <!-- footer -->
+  <g>
+    <text x="80" y="842" font-family="Arial,sans-serif" font-size="24" fill="#64748B">rankai.geo — free 60-second audit, no signup</text>
+  </g>
+</svg>

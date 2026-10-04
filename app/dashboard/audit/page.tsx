@@ -2,7 +2,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { loadCachedAudit, saveCachedAudit } from "@/lib/audit-cache";
+import { loadCachedAudit, saveCachedAudit, fixLink } from "@/lib/audit-cache";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
 import { Loader2, Search, CheckCircle2, XCircle, Wrench } from "lucide-react";
 
@@ -151,7 +151,9 @@ function AuditInner() {
             <Card>
               <h3 className="font-semibold">Top 5 priority actions</h3>
               <div className="mt-3 space-y-2">
-                {result.topActions.map((a: any, i: number) => (
+                {result.topActions.map((a: any, i: number) => {
+                  const f = fixLink(a);
+                  return (
                   <div key={i} className="rounded-xl border border-white/10 bg-black/30 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm font-semibold">{i + 1}. {a.title}</span>
@@ -159,13 +161,12 @@ function AuditInner() {
                     </div>
                     <p className="mt-1 text-xs text-slate-400">{a.detail}</p>
                     <p className="mt-1 text-[11px] text-slate-500">Effort: {a.effort}</p>
-                    {a.link && (
-                      <Link href={a.link} className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">
-                        {a.linkLabel ?? "Do this now →"}
-                      </Link>
-                    )}
+                    <Link href={f.link} className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">
+                      {f.linkLabel}
+                    </Link>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
           </div>

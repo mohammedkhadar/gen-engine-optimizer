@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
 import { TrendingUp, Bell, Plus, Zap } from "lucide-react";
-import { loadCachedAudit, saveCachedAudit } from "@/lib/audit-cache";
+import { loadCachedAudit, saveCachedAudit, fixLink } from "@/lib/audit-cache";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -156,7 +156,9 @@ export default function DashboardOverview() {
           <Link href="/dashboard/audit" className="text-xs font-medium text-violet-300 hover:text-violet-200">Full audit →</Link>
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-3">
-          {(audit!.topActions).slice(0, 3).map((a: any, i: number) => (
+          {(audit!.topActions).slice(0, 3).map((a: any, i: number) => {
+            const f = fixLink(a);
+            return (
             <div key={i} className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
               <div className="flex items-center gap-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-black">{i + 1}</span>
@@ -164,9 +166,10 @@ export default function DashboardOverview() {
               </div>
               <div className="mt-2 text-sm font-semibold">{a.title}</div>
               <div className="mt-1 text-xs text-slate-400">{a.detail}</div>
-              <Link href={a.link ?? "/dashboard/audit"} className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">{a.linkLabel ?? "Fix now →"}</Link>
+              <Link href={f.link} className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">{f.linkLabel}</Link>
             </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
       )}

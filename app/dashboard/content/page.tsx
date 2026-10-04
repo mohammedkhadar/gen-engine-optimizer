@@ -1,12 +1,17 @@
 "use client";
 import { useState } from "react";
 import { Card, Badge } from "@/components/ui";
-import { Copy, Check, Wand2 } from "lucide-react";
+import { Copy, Check, Wand2, Download, FileText, Loader2 } from "lucide-react";
 
 export default function ContentPage() {
   const [input, setInput] = useState("Acme Dental Studio offers teeth whitening in Austin. We have good prices and friendly staff. Book today.");
   const [out, setOut] = useState<any>(null);
   const [copied, setCopied] = useState("");
+  const [llmsBrand, setLlmsBrand] = useState("Acme");
+  const [llmsDomain, setLlmsDomain] = useState("acme.com");
+  const [llmsTagline, setLlmsTagline] = useState("What we do, who we serve, and why we're the trusted choice.");
+  const [llmsTxt, setLlmsTxt] = useState("");
+  const [llmsLoading, setLlmsLoading] = useState(false);
 
   const optimize = () => {
     const brand = "your business";
@@ -28,6 +33,34 @@ export default function ContentPage() {
     navigator.clipboard.writeText(text);
     setCopied(key);
     setTimeout(() => setCopied(""), 1500);
+  };
+
+  const genLlms = async () => {
+    setLlmsLoading(true);
+    try {
+      const res = await fetch("/api/llms-txt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand: llmsBrand,
+          domain: llmsDomain,
+          tagline: llmsTagline,
+          faqs: out?.faqs ?? [],
+        }),
+      }).then((r) => r.json());
+      setLlmsTxt(res.llmsTxt ?? "");
+    } finally {
+      setLlmsLoading(false);
+    }
+  };
+
+  const downloadLlms = () => {
+    const blob = new Blob([llmsTxt], { type: "text/plain" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "llms.txt";
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   return (
@@ -85,6 +118,44 @@ export default function ContentPage() {
           </Card>
         </div>
       )}
+      <Card>
+        <div className="flex items-center gap-2">
+          <FileText size={18} className="text-violet-300" />
+          <h3 className="font-semibold">Your llms.txt file <Badge tone="green">new</Badge></h3>
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          The file AI crawlers look for. Generate it, download it, and publish it at <code>https://yourdomain.com/llms.txt</code> (upload to your site root or ask your developer — one file, one upload).
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <input value={llmsBrand} onChange={(e) => setLlmsBrand(e.target.value)} placeholder="Brand"
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/60" />
+          <input value={llmsDomain} onChange={(e) => setLlmsDomain(e.target.value)} placeholder="domain.com"
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/60" />
+          <input value={llmsTagline} onChange={(e) => setLlmsTagline(e.target.value)} placeholder="One-line description"
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm outline-none focus:border-violet-500/60 sm:col-span-1" />
+        </div>
+        <p className="mt-2 text-[11px] text-slate-500">Tip: run the optimizer above first — your rewritten FAQs are reused in the file automatically.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button onClick={genLlms} disabled={llmsLoading}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-500 px-5 py-2.5 text-sm font-semibold disabled:opacity-60">
+            {llmsLoading ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+            {llmsLoading ? "Generating…" : "Generate llms.txt"}
+          </button>
+          {llmsTxt && (
+            <>
+              <button onClick={() => copy("llms", llmsTxt)} className="flex items-center gap-1.5 rounded-xl border border-white/15 px-4 py-2.5 text-sm hover:bg-white/5">
+                {copied === "llms" ? <Check size={14} /> : <Copy size={14} />} Copy
+              </button>
+              <button onClick={downloadLlms} className="flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black hover:bg-slate-200">
+                <Download size={14} /> Download llms.txt
+              </button>
+            </>
+          )}
+        </div>
+        {llmsTxt && (
+          <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap rounded-xl bg-black/50 p-4 text-xs text-emerald-200">{llmsTxt}</pre>
+        )}
+      </Card>
     </div>
   );
 }

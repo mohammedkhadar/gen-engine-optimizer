@@ -70,18 +70,18 @@ function AuditInner() {
       </div>
 
       <Card>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <form onSubmit={(e) => { e.preventDefault(); run(); }} className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
             <input value={url} onChange={(e) => setUrl(e.target.value)}
               placeholder="https://yourbusiness.com"
               className="w-full rounded-xl border border-white/10 bg-black/40 py-3 pl-10 pr-3 text-sm outline-none focus:border-violet-500/60" />
           </div>
-          <button onClick={() => run()} disabled={loading}
+          <button type="submit" disabled={loading}
             className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-6 py-3 text-sm font-semibold disabled:opacity-60">
             {loading && <Loader2 size={16} className="animate-spin" />} {loading ? "Crawling…" : "Run GEO audit"}
           </button>
-        </div>
+        </form>
         {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
       </Card>
 

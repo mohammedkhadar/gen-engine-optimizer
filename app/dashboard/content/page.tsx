@@ -5,6 +5,9 @@ import { Copy, Check, Wand2, Download, FileText, Loader2 } from "lucide-react";
 
 export default function ContentPage() {
   const [input, setInput] = useState("");
+  const [pageUrl, setPageUrl] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [fetchNote, setFetchNote] = useState("");
   const [out, setOut] = useState<any>(null);
   const [copied, setCopied] = useState("");
   const [llmsBrand, setLlmsBrand] = useState("Acme");
@@ -12,6 +15,28 @@ export default function ContentPage() {
   const [llmsTagline, setLlmsTagline] = useState("What we do, who we serve, and why we're the trusted choice.");
   const [llmsTxt, setLlmsTxt] = useState("");
   const [llmsLoading, setLlmsLoading] = useState(false);
+
+  const fetchFromUrl = async () => {
+    const u = pageUrl.trim();
+    if (!u || fetching) return;
+    setFetching(true); setFetchNote("");
+    try {
+      const res = await fetch("/api/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: u }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not read that page");
+      setInput(data.text);
+      setOut(null);
+      setFetchNote(`Pulled ${data.chars.toLocaleString()} chars${data.truncated ? " (trimmed to essentials)" : ""}${data.title ? ` — "${data.title.slice(0, 60)}"` : ""}. Edit below if needed, then generate.`);
+    } catch (e: any) {
+      setFetchNote(e.message);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const optimize = () => {
     const brand = "your business";
@@ -70,6 +95,21 @@ export default function ContentPage() {
         <p className="text-sm text-slate-400">Rewrite any copy so LLMs extract it, quote it, and cite it.</p>
       </div>
       <Card>
+        <label className="text-sm font-medium">Pull copy straight from a URL</label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <input value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && fetchFromUrl()}
+            placeholder="https://yourdomain.com/pricing"
+            className="flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none placeholder:text-slate-600 focus:border-violet-500/60" />
+          <button onClick={fetchFromUrl} disabled={!pageUrl.trim() || fetching}
+            className="flex items-center justify-center gap-2 rounded-xl border border-white/15 px-5 py-2.5 text-sm font-medium hover:bg-white/5 disabled:opacity-40">
+            {fetching ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+            {fetching ? "Reading…" : "Fetch page"}
+          </button>
+        </div>
+        {fetchNote && <p className="mt-2 text-xs text-slate-400">{fetchNote}</p>}
+        <div className="my-3 flex items-center gap-3 text-[11px] uppercase tracking-widest text-slate-600">
+          <span className="h-px flex-1 bg-white/10" /> or paste manually <span className="h-px flex-1 bg-white/10" />
+        </div>
         <label className="text-sm font-medium">Paste your page copy</label>
         <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={5}
           placeholder="e.g. Acme Dental Studio offers teeth whitening in Austin. We have good prices and friendly staff. Book today."

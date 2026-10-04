@@ -2,38 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { scoreUrl } from "@/lib/geo-engine";
+import { normalizeUrl, fetchHtml } from "@/lib/fetch-page";
 import { prisma, hasDatabase } from "@/lib/db";
 import { saveAuditLocal } from "@/lib/store";
-
-function normalizeUrl(raw: string): string {
-  let u = raw.trim();
-  if (!u.includes("://")) u = "https://" + u;
-  const parsed = new URL(u);
-  if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Only http(s) URLs supported");
-  return parsed.toString();
-}
-
-async function fetchHtml(url: string) {
-  const started = Date.now();
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 9000);
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      headers: {
-        "User-Agent": "RankAI-GEO-Bot/1.0 (+https://rankai.geo; audits generative readiness)",
-        Accept: "text/html",
-      },
-      redirect: "follow",
-    });
-    clearTimeout(t);
-    const ct = res.headers.get("content-type") ?? "";
-    if (res.ok && ct.includes("text/html")) {
-      return { html: (await res.text()).slice(0, 600_000), loadMs: Date.now() - started };
-    }
-  } catch { /* fallback */ }
-  return { html: null as string | null, loadMs: Date.now() - started };
-}
 
 export async function POST(req: NextRequest) {
   try {

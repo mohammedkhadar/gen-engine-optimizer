@@ -300,20 +300,22 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     { type: "Extractable Facts", found: s.hasStats || s.hasTables || s.hasLists, detail: s.hasStats || s.hasTables || s.hasLists ? "Detected" : "Weak — add stats, tables, lists" },
   ];
 
-  // Rank fixes by score gap × weight
+  // Rank fixes by score gap × weight. `link` deep-links into the generator
+  // that produces the fix, so an audit finding is one click from done.
+  const GEN = "/dashboard/content";
   const topActions = [
     ...(!s.hasSchema
-      ? [{ title: "Add JSON-LD schema bundle", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix." }]
+      ? [{ title: "Add JSON-LD schema bundle", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix.", link: GEN, linkLabel: "Generate the bundle →" }]
       : []),
     ...(!s.hasFAQ
-      ? [{ title: "Add an AI excerpt + FAQ block", impact: "+8–12 pts", effort: "45 min", detail: "40–60 word direct answer at top, then 5 question-style H2s with concise answers." }]
+      ? [{ title: "Add an AI excerpt + FAQ block", impact: "+8–12 pts", effort: "45 min", detail: "40–60 word direct answer at top, then 5 question-style H2s with concise answers.", link: GEN, linkLabel: "Generate excerpt + FAQs →" }]
       : []),
     ...(!s.hasAuthor
       ? [{ title: "Add authorship & sources", impact: "+6–10 pts", effort: "30 min", detail: "Byline, credentials, publish date, 3+ outbound citations to primary sources." }]
       : []),
     { title: "Publish comparison & pricing pages", impact: "+6–9 pts", effort: "2–4 hrs", detail: "AI engines cite '/vs', '/pricing', '/alternatives' pages heavily. Add tables." },
     { title: "Earn 5 third-party mentions", impact: "+5–10 pts", effort: "Ongoing", detail: "Reddit, G2, Capterra, Quora, niche blogs — LLMs memorize these corpora." },
-    { title: "Allow AI crawlers + llms.txt", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary." },
+    { title: "Allow AI crawlers + llms.txt", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary.", link: GEN, linkLabel: "Generate my llms.txt →" },
   ].slice(0, 5);
 
   return {

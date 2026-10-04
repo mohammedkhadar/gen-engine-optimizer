@@ -1,6 +1,7 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
 import { Loader2, Search, CheckCircle2, XCircle, Wrench } from "lucide-react";
 
@@ -140,6 +141,11 @@ function AuditInner() {
                     </div>
                     <p className="mt-1 text-xs text-slate-400">{a.detail}</p>
                     <p className="mt-1 text-[11px] text-slate-500">Effort: {a.effort}</p>
+                    {a.link && (
+                      <Link href={a.link} className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">
+                        {a.linkLabel ?? "Do this now →"}
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>

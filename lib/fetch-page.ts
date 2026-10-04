@@ -34,28 +34,41 @@ export async function fetchHtml(url: string, timeoutMs = 9000): Promise<{ html: 
 const CHROME_PATTERNS = /skip to content|log in|sign in|sign up|create account|shopping cart|\bcart\b|\bmenu\b|^search$|cookies|cookie policy|newsletter|subscribe|follow us|all rights reserved|terms of (service|use)|privacy policy/i;
 
 export function extractContentLines(html: string): string[] {
-  // Prefer the main content landmark — nav/header/footer/aside are chrome.
-  const main =
-    /<main[\s>][\s\S]*?<\/main>/i.exec(html)?.[0] ??
-    /<article[\s>][\s\S]*?<\/article>/i.exec(html)?.[0] ??
-    html;
-  const body = main
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
-    .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
-    .replace(/<header[\s\S]*?<\/header>/gi, " ")
-    .replace(/<aside[\s\S]*?<\/aside>/gi, " ");
-  const text = body
-    .replace(/<\/(h1|h2|h3|h4|p|li|tr|div|section|article)>/gi, "\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n\s*\n+/g, "\n")
-    .trim();
-  return text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l.length > 25 && !CHROME_PATTERNS.test(l));
+  const clean = (source: string) => {
+    const body = source
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<nav[\s\S]*?<\/nav>/gi, " ")
+      .replace(/<footer[\s\S]*?<\/footer>/gi, " ")
+      .replace(/<header[\s\S]*?<\/header>/gi, " ")
+      .replace(/<aside[\s\S]*?<\/aside>/gi, " ");
+    const text = body
+      .replace(/<\/(h1|h2|h3|h4|p|li|tr|div|section|article)>/gi, "\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n\s*\n+/g, "\n")
+      .trim();
+    return text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 25 && !CHROME_PATTERNS.test(l));
+  };
+  // Prefer the main content landmark — but only if it actually holds the bulk
+  // of the page text. Card grids full of tiny <article> teasers must never
+  // beat the full page (terapia-cbt.pl case: best card 204 chars vs page 2000+).
+  const blocks = [
+    ...html.matchAll(/<main[\s>][\s\S]*?<\/main>/gi),
+    ...html.matchAll(/<article[\s>][\s\S]*?<\/article>/gi),
+  ].map((m) => m[0]);
+  const textLen = (s: string) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().length;
+  const best = blocks.sort((a, b) => textLen(b) - textLen(a))[0];
+  const full = clean(html);
+  const fullLen = full.join("\n").length;
+  if (best) {
+    const bestLines = clean(best);
+    if (bestLines.join("\n").length > Math.max(200, fullLen * 0.6)) return bestLines;
+  }
+  return full;
 }
 
 export function extractText(html: string, maxChars = 8000) {

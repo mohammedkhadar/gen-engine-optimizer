@@ -160,15 +160,18 @@ export default function VideoPage() {
   const [playing, setPlaying] = useState(true);
   const [t, setT] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const [musicOn, setMusicOn] = useState(true);
+  const [unlocked, setUnlocked] = useState(false);
   const [voiceURI, setVoiceURI] = useState("");
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const timer = useRef<NodeJS.Timeout | null>(null);
   const speakingRef = useRef(false);
   const audioRef = useRef<{ ctx: AudioContext; gain: GainNode } | null>(null);
+  const idxRef = useRef(0);
 
-  // Browsers block audio until a user gesture — sound starts via the Enable button.
+  // Browsers block audio until the first user gesture. Sound defaults ON and
+  // unlocks itself on the first tap/click/keypress anywhere on the page.
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const load = () => setVoices(window.speechSynthesis.getVoices());
@@ -205,11 +208,6 @@ export default function VideoPage() {
     } catch { /* audio unsupported — video still plays silent */ }
   };
 
-  const enableSound = () => {
-    setSoundOn(true);
-    if (musicOn) startMusic();
-  };
-
   const toggleMusic = () => {
     const next = !musicOn;
     setMusicOn(next);
@@ -239,14 +237,14 @@ export default function VideoPage() {
   }
   const scene = SCENES[idx];
   const progress = (t / TOTAL) * 100;
+  idxRef.current = idx;
 
-  // Speak the current scene's narration whenever the scene changes (if sound on).
-  // The clock freezes while speaking (see timer), so long narrations — e.g.
-  // scene 1 — always play out fully before advancing.
-  useEffect(() => {
-    if (!soundOn || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  // Speak a scene's narration. Extracted so the first user gesture can
+  // (re)trigger it — browsers discard speech requested before interaction.
+  const speakScene = (i: number) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(SCENES[idx].narration);
+    const u = new SpeechSynthesisUtterance(SCENES[i].narration);
     const en = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
     u.voice =
       en.find((v) => v.voiceURI === voiceURI) ??
@@ -262,10 +260,38 @@ export default function VideoPage() {
     u.onend = done;
     u.onerror = done;
     // safety: never freeze longer than 90s even if speech events misbehave
-    const failsafe = setTimeout(() => { speakingRef.current = false; }, 90000);
+    setTimeout(() => { speakingRef.current = false; }, 90000);
     window.speechSynthesis.speak(u);
+  };
+
+  // Unlock audio on the first interaction anywhere: start music and
+  // (re)speak the current scene, since pre-gesture speech gets discarded.
+  useEffect(() => {
+    if (unlocked || !soundOn) return;
+    const unlock = () => {
+      setUnlocked(true);
+      if (musicOn) startMusic();
+      else audioRef.current?.ctx.resume().catch(() => {});
+      window.speechSynthesis?.cancel();
+      speakScene(idxRef.current);
+    };
+    const opts = { once: true } as const;
+    window.addEventListener("pointerdown", unlock, opts);
+    window.addEventListener("keydown", unlock, opts);
     return () => {
-      clearTimeout(failsafe);
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlocked, soundOn, musicOn]);
+
+  // Speak the current scene's narration whenever the scene changes (if sound on).
+  // The clock freezes while speaking (see timer), so long narrations — e.g.
+  // scene 1 — always play out fully before advancing.
+  useEffect(() => {
+    if (!soundOn || typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    speakScene(idx);
+    return () => {
       window.speechSynthesis.cancel();
       speakingRef.current = false;
     };
@@ -327,9 +353,14 @@ export default function VideoPage() {
               <button onClick={() => { window.speechSynthesis?.cancel(); speakingRef.current = false; setT(0); }} className="rounded-full border border-white/20 p-2"><RotateCcw size={16} /></button>
               <span className="text-xs text-slate-300">{Math.floor(t)}s / {TOTAL}s · {scene.kicker}</span>
               <div className="ml-auto flex items-center gap-1.5">
+                {!unlocked && soundOn && (
+                  <span className="animate-pulse rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[11px] font-medium text-amber-200">
+                    Tap anywhere for sound
+                  </span>
+                )}
                 {soundOn ? (
                   <>
-                    <button onClick={() => { setSoundOn(false); window.speechSynthesis?.cancel(); }} title="Mute narration"
+                    <button onClick={() => { setSoundOn(false); window.speechSynthesis?.cancel(); speakingRef.current = false; }} title="Mute narration"
                       className="rounded-full border border-white/20 p-1.5"><Volume2 size={14} /></button>
                     <button onClick={toggleMusic} title={musicOn ? "Mute music" : "Unmute music"}
                       className={`rounded-full border p-1.5 ${musicOn ? "border-emerald-400/50 text-emerald-300" : "border-white/20 text-slate-400"}`}>
@@ -346,8 +377,8 @@ export default function VideoPage() {
                     )}
                   </>
                 ) : (
-                  <button onClick={enableSound} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black">
-                    <VolumeX size={14} /> Enable sound
+                  <button onClick={() => { setSoundOn(true); setUnlocked(true); if (musicOn) startMusic(); speakScene(idxRef.current); }} className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black">
+                    <VolumeX size={14} /> Unmute
                   </button>
                 )}
               </div>
@@ -361,7 +392,7 @@ export default function VideoPage() {
             </div>
           </div>
         </div>
-        <p className="mt-2 text-center text-xs text-slate-500">Tip: click <b>Enable sound</b> for auto narration + ambient music, fullscreen (F11), then screen-record with QuickTime (Cmd+Shift+5) for a shareable MP4 with audio.</p>
+        <p className="mt-2 text-center text-xs text-slate-500">Tip: sound plays automatically after your first tap — fullscreen (F11), then screen-record with QuickTime (Cmd+Shift+5) for a shareable MP4 with audio.</p>
       </div>
 
       {/* narration script */}

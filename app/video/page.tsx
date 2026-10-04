@@ -309,12 +309,22 @@ export default function VideoPage() {
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(SCENES[i].narration);
     const en = voices.filter((v) => v.lang.toLowerCase().startsWith("en"));
+    // Prefer warm, natural voices; skip robotic ones (eSpeak, legacy desktop).
+    const robotic = /espeak|whisper|fred|ralph|bulbul| Reed |rocko| Shelley |junior|kathy/i;
+    const natural = en.filter((v) => !robotic.test(v.name));
+    const pool = natural.length ? natural : en;
     u.voice =
-      en.find((v) => v.voiceURI === voiceURI) ??
-      en.find((v) => /google us english|samantha|zira|aria|jenny/i.test(v.name)) ??
-      en[0] ??
+      pool.find((v) => v.voiceURI === voiceURI) ??
+      pool.find((v) => /google us english/i.test(v.name)) ??
+      pool.find((v) => /samantha/i.test(v.name)) ??
+      pool.find((v) => /aria|jenny/i.test(v.name) && /natural|online/i.test(v.name)) ??
+      pool.find((v) => /aria|jenny|guy|davis|jane/i.test(v.name)) ??
+      pool.find((v) => /zira|susan|zira/i.test(v.name)) ??
+      pool[0] ??
       null;
-    u.rate = 1.02;
+    // Friendly-professional delivery: unhurried pace, slight warmth in pitch.
+    u.rate = 0.98;
+    u.pitch = 1.05;
     speakingRef.current = true;
     const done = () => {
       // beat after the last word before the scene moves on

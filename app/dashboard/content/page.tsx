@@ -75,7 +75,7 @@ export default function ContentPage() {
           placeholder="e.g. Acme Dental Studio offers teeth whitening in Austin. We have good prices and friendly staff. Book today."
           className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 p-3 text-sm outline-none placeholder:text-slate-600 focus:border-violet-500/60" />
         <button onClick={optimize} disabled={!input.trim()} className="mt-3 flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-500 px-5 py-2.5 text-sm font-semibold disabled:opacity-40">
-          <Wand2 size={15} /> Optimize for AI citations
+          <Wand2 size={15} /> Make it citable →
         </button>
       </Card>
       {out && (

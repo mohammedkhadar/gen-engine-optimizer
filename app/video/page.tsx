@@ -357,15 +357,14 @@ export default function VideoPage() {
     u.onend = () => release(2000);
     u.onerror = () => release(500);
     // Primary end detection: word-boundary events stop the instant audio stops.
-    // If 1.6s pass with no boundary (after 3s airtime), speech is over — release
-    // with a short beat since silence already elapsed.
+    // Keyed on the events themselves (not onstart, which some browsers never
+    // fire even while audio plays). If this browser emits no boundary events
+    // at all, fall back to engine state + the duration estimate below.
     intervals.push(window.setInterval(() => {
-      const quietFor = Date.now() - lastBoundary;
-      if (started && Date.now() - bornAt > 3000 && quietFor > 1600) {
-        started = false;
-        release(1000);
-      } else if (started && Date.now() - bornAt > 3000 && !window.speechSynthesis.speaking) {
-        started = false;
+      if (released || Date.now() - bornAt < 3000) return;
+      if (boundaryRef.current > 0) {
+        if (Date.now() - boundaryRef.current > 1600) release(1000);
+      } else if (started && !window.speechSynthesis.speaking && Date.now() - bornAt > 5000) {
         release(2000);
       }
     }, 250));

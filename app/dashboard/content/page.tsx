@@ -153,7 +153,7 @@ export default function ContentPage() {
         </button>
       </Card>
       {out && (
-        <div className="grid gap-4">
+        <div className="grid gap-4 *:min-w-0">
           <Card>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">AI excerpt block <Badge tone="green">paste at top of page</Badge></h3>

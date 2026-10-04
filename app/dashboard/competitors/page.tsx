@@ -27,6 +27,8 @@ export default function CompetitorsPage() {
   ]);
   const [newName, setNewName] = useState("");
   const [newDomain, setNewDomain] = useState("");
+  const [editName, setEditName] = useState<string | null>(null);
+  const [editDomain, setEditDomain] = useState("");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -61,6 +63,11 @@ export default function CompetitorsPage() {
   const removeRival = (name: string) => {
     const next = rivals.filter((r) => r.name !== name);
     setRivals(next); persist(next);
+  };
+
+  const saveDomain = (name: string) => {
+    const next = rivals.map((r) => (r.name === name ? { ...r, domain: cleanDomain(editDomain) } : r));
+    setRivals(next); persist(next); setEditName(null); setEditDomain("");
   };
 
   const load = async () => {
@@ -106,7 +113,23 @@ export default function CompetitorsPage() {
             {rivals.map((r) => (
               <span key={r.name} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs">
                 <span className="font-medium">{r.name}</span>
-                {r.domain && <span className="text-slate-500">{r.domain}</span>}
+                {r.domain ? (
+                  <span className="text-slate-500">{r.domain}</span>
+                ) : editName === r.name ? (
+                  <input
+                    autoFocus
+                    value={editDomain}
+                    onChange={(e) => setEditDomain(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") saveDomain(r.name); if (e.key === "Escape") setEditName(null); }}
+                    onBlur={() => { if (editDomain.trim()) saveDomain(r.name); else setEditName(null); }}
+                    placeholder="website.com"
+                    className="w-28 rounded-md border border-violet-500/50 bg-black/60 px-1.5 py-0.5 text-xs outline-none"
+                  />
+                ) : (
+                  <button onClick={() => { setEditName(r.name); setEditDomain(""); }} className="text-violet-300/80 hover:text-violet-200">
+                    + add site
+                  </button>
+                )}
                 <button onClick={() => removeRival(r.name)} className="text-slate-500 hover:text-red-300"><X size={13} /></button>
               </span>
             ))}

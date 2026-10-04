@@ -49,7 +49,18 @@ export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
   useEffect(() => {
     const cached = localStorage.getItem("rankai:lastAudit");
-    if (cached) { try { setAudit(JSON.parse(cached)); } catch {} }
+    if (cached) { try { setAudit(JSON.parse(cached)); return; } catch {} }
+    // No local cache (new device/browser): fall back to latest server audit.
+    fetch("/api/history")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const latest = d?.audits?.[0];
+        if (latest?.url) {
+          setAudit(latest);
+          try { localStorage.setItem("rankai:lastAudit", JSON.stringify(latest)); } catch {}
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const cats: { label: string; score: number }[] = audit?.categories ?? DEFAULT_CATS;

@@ -50,8 +50,21 @@ function AuditInner() {
         const data = JSON.parse(cached);
         setResult(data);
         if (data.url) setUrl(data.url);
+        return;
       }
     } catch {}
+    // No local cache (new device): latest server-side audit.
+    fetch("/api/history")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const latest = d?.audits?.[0];
+        if (latest?.url) {
+          setResult(latest);
+          setUrl(latest.url);
+          try { localStorage.setItem("rankai:lastAudit", JSON.stringify(latest)); } catch {}
+        }
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

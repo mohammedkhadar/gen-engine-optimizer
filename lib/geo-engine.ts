@@ -308,7 +308,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
       ? [{ title: "Add schema bundle (JSON-LD)", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix.", link: GEN, linkLabel: "Generate the bundle →" }]
       : []),
     ...(!s.hasFAQ
-      ? [{ title: "Add an AI excerpt + FAQ block", impact: "+8–12 pts", effort: "45 min", detail: "40–60 word direct answer at top, then 5 question-style H2s with concise answers.", link: GEN, linkLabel: "Generate excerpt + FAQs →" }]
+      ? [{ title: "Add AI excerpt & FAQ", impact: "+8–12 pts", effort: "45 min", detail: "40–60 word direct answer at top, then 5 question-style H2s with concise answers.", link: GEN, linkLabel: "Generate excerpt + FAQs →" }]
       : []),
     ...(!s.hasAuthor
       ? [{ title: "Add authorship & sources", impact: "+6–10 pts", effort: "30 min", detail: "Byline, credentials, publish date, 3+ outbound citations to primary sources." }]

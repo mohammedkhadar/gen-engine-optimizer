@@ -305,7 +305,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
   const GEN = "/dashboard/content";
   const topActions = [
     ...(!s.hasSchema
-      ? [{ title: "Add JSON-LD schema bundle", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix.", link: GEN, linkLabel: "Generate the bundle →" }]
+      ? [{ title: "Add schema bundle (JSON-LD)", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix.", link: GEN, linkLabel: "Generate the bundle →" }]
       : []),
     ...(!s.hasFAQ
       ? [{ title: "Add an AI excerpt + FAQ block", impact: "+8–12 pts", effort: "45 min", detail: "40–60 word direct answer at top, then 5 question-style H2s with concise answers.", link: GEN, linkLabel: "Generate excerpt + FAQs →" }]

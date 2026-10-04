@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress, ScoreRing } from "@/components/ui";
-import { TrendingUp, Bell, Plus } from "lucide-react";
+import { TrendingUp, Bell, Plus, Zap } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
@@ -103,6 +103,30 @@ export default function DashboardOverview() {
         ))}
       </div>
 
+      <Card className="border-emerald-500/30 ring-1 ring-emerald-500/20">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 font-semibold"><Zap size={17} className="text-emerald-300" /> Top recommended fixes</h3>
+          <Link href="/dashboard/audit" className="text-xs font-medium text-violet-300 hover:text-violet-200">Full audit →</Link>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {(audit?.topActions ?? [
+            { title: "Add JSON-LD schema bundle", impact: "+12–18 pts", detail: "Organization + FAQPage + Article." },
+            { title: "Add AI excerpt + FAQ block", impact: "+8–12 pts", detail: "40–60 word direct answer at top." },
+            { title: "Publish /llms.txt + allow AI bots", impact: "+4–7 pts", detail: "Whitelist GPTBot, PerplexityBot." },
+          ]).slice(0, 3).map((a: any, i: number) => (
+            <div key={i} className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-black">{i + 1}</span>
+                <Badge tone="violet">{a.impact}</Badge>
+              </div>
+              <div className="mt-2 text-sm font-semibold">{a.title}</div>
+              <div className="mt-1 text-xs text-slate-400">{a.detail}</div>
+              <Link href="/dashboard/audit" className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">Fix now →</Link>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between">
@@ -178,23 +202,6 @@ export default function DashboardOverview() {
         </div>
       </Card>
 
-      <Card>
-        <h3 className="font-semibold">Top recommended fixes</h3>
-        <div className="mt-3 grid gap-2 md:grid-cols-3">
-          {(audit?.topActions ?? [
-            { title: "Add JSON-LD schema bundle", impact: "+12–18 pts", detail: "Organization + FAQPage + Article." },
-            { title: "Add AI excerpt + FAQ block", impact: "+8–12 pts", detail: "40–60 word direct answer at top." },
-            { title: "Publish /llms.txt + allow AI bots", impact: "+4–7 pts", detail: "Whitelist GPTBot, PerplexityBot." },
-          ]).slice(0, 3).map((a: any, i: number) => (
-            <div key={i} className="rounded-xl border border-white/10 bg-black/30 p-4">
-              <Badge tone="violet">{a.impact}</Badge>
-              <div className="mt-2 text-sm font-semibold">{a.title}</div>
-              <div className="mt-1 text-xs text-slate-400">{a.detail}</div>
-              <Link href="/dashboard/audit" className="mt-2 inline-block text-xs text-violet-300">Fix now →</Link>
-            </div>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }

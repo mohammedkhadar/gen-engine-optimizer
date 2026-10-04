@@ -161,9 +161,11 @@ function AuditInner() {
                     </div>
                     <p className="mt-1 text-xs text-slate-400">{a.detail}</p>
                     <p className="mt-1 text-[11px] text-slate-500">Effort: {a.effort}</p>
+                    {f && (
                     <Link href={f.link} className="mt-2 inline-block text-xs font-medium text-emerald-300 hover:text-emerald-200">
                       {f.linkLabel}
                     </Link>
+                    )}
                   </div>
                   );
                 })}

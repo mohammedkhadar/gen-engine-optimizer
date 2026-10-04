@@ -67,7 +67,8 @@ export function fixLink(a: { title?: string; link?: string; linkLabel?: string }
   if (a?.link) return { link: a.link, linkLabel: a.linkLabel ?? "Fix now →" };
   const legacy = (a?.title && LEGACY_FIX_LINKS[a.title]) || null;
   if (legacy) return legacy;
-  return { link: "/dashboard/audit", linkLabel: "Fix now →" };
+  // No generator for this fix: render no link rather than a loop back here.
+  return null;
 }
 
 export async function saveCachedAudit(data: any) {

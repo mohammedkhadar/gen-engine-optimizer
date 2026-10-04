@@ -178,12 +178,27 @@ export default function ContentPage() {
         <div className="grid gap-4 *:min-w-0">
           <Card>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">AI excerpt block <Badge tone="green">paste at top of page</Badge></h3>
+              <h3 className="font-semibold">AI excerpt block</h3>
               <button onClick={() => copy("excerpt", out.excerpt)} className="text-xs text-slate-400 hover:text-white flex gap-1 items-center">
-                {copied === "excerpt" ? <Check size={13} /> : <Copy size={13} />} Copy
+                {copied === "excerpt" ? <Check size={13} /> : <Copy size={13} />} Copy text
               </button>
             </div>
             <p className="mt-2 rounded-xl bg-black/30 p-4 text-sm leading-relaxed">{out.excerpt}</p>
+            <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Where to put this</div>
+              <ol className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-300">
+                <li><b className="text-white">1.</b> Open the page in your CMS or code — <b className="text-white">directly under the main headline (&lt;h1&gt;)</b>, above everything else.</li>
+                <li><b className="text-white">2.</b> WordPress: Gutenberg → + Custom HTML block → paste the snippet below. Shopify: Online Store → Pages → Show HTML → paste after the title. Webflow/Wix/Squarespace: embed-code element at the top of the page. Plain HTML: paste right after <code>&lt;h1&gt;…&lt;/h1&gt;</code>.</li>
+                <li><b className="text-white">3.</b> Keep it visible plain text (never an image) so crawlers can extract it, then re-run the audit to see the Answer-ready score move.</li>
+              </ol>
+              <div className="mt-2 flex items-center justify-between">
+                <span className="text-[11px] text-slate-500">Ready-to-paste HTML version:</span>
+                <button onClick={() => copy("excerptHtml", `<p><strong>TL;DR:</strong> ${out.excerpt.replace(/^TL;DR:\s*/, "")}</p>`)} className="text-xs text-slate-400 hover:text-white flex gap-1 items-center">
+                  {copied === "excerptHtml" ? <Check size={13} /> : <Copy size={13} />} Copy HTML
+                </button>
+              </div>
+              <pre className="mt-1 overflow-x-auto rounded-lg bg-black/50 p-3 text-[11px] text-emerald-200">{`<p><strong>TL;DR:</strong> ${out.excerpt.replace(/^TL;DR:\s*/, "").slice(0, 160)}…</p>`}</pre>
+            </div>
           </Card>
           <Card>
             <h3 className="font-semibold">FAQ block (rewritten as buyer questions)</h3>

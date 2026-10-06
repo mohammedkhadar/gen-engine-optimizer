@@ -22,10 +22,10 @@ function loadResults(t: Target): { tests: any[]; source: any } | null {
   }
 }
 
-function saveResults(t: Target, tests: any[], source: any) {
+function saveResults(t: Target, tests: any[], source: any, auditUrl?: string) {
   try {
     const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
-    all[resultsKey(t)] = { tests, source, at: Date.now() };
+    all[resultsKey(t)] = { tests, source, at: Date.now(), auditUrl: auditUrl ?? null };
     localStorage.setItem(LS_RESULTS, JSON.stringify(all));
     localStorage.setItem(LS_TARGET, JSON.stringify(t));
   } catch {}
@@ -56,29 +56,40 @@ export default function PromptsPage() {
   const [suggestSource, setSuggestSource] = useState<string | null>(null);
   const [suggestedFor, setSuggestedFor] = useState("");
 
-  // First visit: restore last target + results, else open the setup dialog.
+  // First visit: restore last target + results for the CURRENT audit URL.
+  // If the audit moved to a different site, previous results belong to that
+  // site — drop them so stale numbers never pose as current.
   useEffect(() => {
-    const t = loadTarget();
-    if (t) {
-      setTarget(t);
+    loadCachedAudit().then((audit) => {
+      const t = loadTarget();
+      if (!t) {
+        if (audit?.url) {
+          setDUrl(audit.url);
+          try {
+            const host = new URL(audit.url).hostname.replace(/^www\./, "");
+            setDDomain(host);
+          } catch {}
+        }
+        setDialogOpen(true);
+        return;
+      }
       const saved = loadResults(t);
+      if (saved && saved.auditUrl && audit?.url && saved.auditUrl !== audit.url) {
+        try {
+          const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
+          delete all[`${t.brand.toLowerCase()}|${t.domain.toLowerCase()}`];
+          localStorage.setItem(LS_RESULTS, JSON.stringify(all));
+        } catch {}
+        setTarget(t);
+        setDUrl(audit.url);
+        return;
+      }
+      setTarget(t);
       if (saved) {
         setTests(saved.tests);
         setSource(saved.source);
-        return;
-      }
-    }
-    // No previous run: prefill URL from audit, open setup.
-    loadCachedAudit().then((data) => {
-      if (data?.url) {
-        setDUrl((u) => u || data.url);
-        try {
-          const host = new URL(data.url).hostname.replace(/^www\./, "");
-          setDDomain((d) => d || host);
-        } catch {}
       }
     });
-    setDialogOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -120,7 +131,8 @@ export default function PromptsPage() {
       const data = await res.json();
       setTests(data.tests);
       setSource(data.batterySource ?? null);
-      saveResults(t, data.tests, data.batterySource ?? null);
+      const audit = await loadCachedAudit().catch(() => null);
+      saveResults(t, data.tests, data.batterySource ?? null, audit?.url);
     } finally {
       setLoading(false);
     }

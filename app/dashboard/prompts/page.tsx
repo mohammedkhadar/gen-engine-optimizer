@@ -6,7 +6,9 @@ import { Loader2, Plus } from "lucide-react";
 export default function PromptsPage() {
   const [brand, setBrand] = useState("Acme");
   const [domain, setDomain] = useState("acme.com");
+  const [url, setUrl] = useState("");
   const [tests, setTests] = useState<any[]>([]);
+  const [source, setSource] = useState<"business" | "generic" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const run = async () => {
@@ -14,10 +16,11 @@ export default function PromptsPage() {
     const res = await fetch("/api/visibility", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brand, domain }),
+      body: JSON.stringify({ brand, domain, url: url.trim() || undefined }),
     });
     const data = await res.json();
     setTests(data.tests);
+    setSource(data.batterySource ?? null);
     setLoading(false);
   };
 
@@ -28,16 +31,25 @@ export default function PromptsPage() {
         <p className="text-sm text-slate-400">Test the exact buyer prompts across 5 AI engines. See who gets cited.</p>
       </div>
       <Card>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-4">
           <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Brand name"
             className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
           <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="domain.com"
             className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Site URL for tailored prompts (optional)"
+            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none placeholder:text-slate-600 focus:border-violet-500/60" />
           <button onClick={run} disabled={loading}
             className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-60">
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} {loading ? "Testing…" : "Run 5 prompt tests"}
+            {loading ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} {loading ? "Reading site & testing…" : "Run 5 prompt tests"}
           </button>
         </div>
+        {source && (
+          <p className="mt-2 text-xs text-slate-500">
+            {source === "business"
+              ? "Prompts below were written from this site's actual offering and location."
+              : "Site unreadable — fell back to generic prompts. Check the URL and retry."}
+          </p>
+        )}
       </Card>
       {tests.length === 0 && (
         <Card className="text-center text-sm text-slate-400">

@@ -388,8 +388,35 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
   };
 }
 
-export function simulatePromptTests(brand: string, domain: string) {
-  const prompts = [
+export function buildBusinessPrompts(brand: string, domain: string, text: string): string[] {
+  const clean = brand.trim() || "the business";
+  const bare = domain.replace(/^www\./, "").split(".")[0];
+  // Offering: first substantive sentence of the page (hero copy), skipping
+  // nav-crumb lines (separator runs like * | › ») that carry no meaning.
+  const lines = text.split("\n").map((l) => l.trim()).filter((l) => l.length > 30);
+  const meaningful = (l: string) =>
+    !/[*|›»«]{2,}/.test(l) && /[a-zżźćńółęąś]{4,}/.test(l.toLowerCase());
+  const hero =
+    lines.find((l) => meaningful(l) && /[.!?]$/.test(l)) ??
+    lines.find((l) => meaningful(l)) ??
+    "";
+  const firstLine = hero.slice(0, 90);
+  const words = firstLine.split(/\s+/).filter(Boolean);
+  const shortOffering = words.length > 7 ? words.slice(0, 7).join(" ") + "…" : firstLine || `${clean} services`;
+  // Location hint: "in <Place>" pattern from the copy.
+  const loc = /bin\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/.exec(text)?.[1] ?? "";
+  const where = loc ? ` in ${loc}` : "";
+  return [
+    `What is the best ${shortOffering} for small business — ${clean} or alternatives?`,
+    `Is ${clean} reliable${where}? Reviews and pricing?`,
+    `${clean} vs competitors — which should I choose?`,
+    `How much does ${clean}${where} cost?`,
+    `What do people say about ${bare}${where} online?`,
+  ];
+}
+
+export function simulatePromptTests(brand: string, domain: string, customPrompts?: string[]) {
+  const prompts = customPrompts?.length === 5 ? customPrompts : [
     `What is the best ${brand} alternative for small business?`,
     `Is ${brand} reliable? Reviews and pricing?`,
     `${brand} vs competitors — which should I choose?`,

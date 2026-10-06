@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { simulatePromptTests, competitorSet, brandStats } from "@/lib/geo-engine";
+import { simulatePromptTests, competitorSet, brandStats, buildBusinessPrompts } from "@/lib/geo-engine";
+import { normalizeUrl, fetchHtml, extractText } from "@/lib/fetch-page";
 import { livePromptTest, providerStatus } from "@/lib/providers/citations";
 import { prisma, hasDatabase } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
-  const { brand = "Acme", domain = "acme.com", competitors: rivalNames = [] } = await req.json().catch(() => ({}));
+  const { brand = "Acme", domain = "acme.com", competitors: rivalNames = [], url: rawUrl } = await req.json().catch(() => ({}));
   const b = String(brand);
   const d = String(domain);
 
-  const base = simulatePromptTests(b, d);
+  // Business-relevant prompts: read the site first, then write the battery
+  // from its real offering/location. Falls back to generic battery when the
+  // page can't be fetched.
+  let battery: string[] | undefined;
+  try {
+    const target = normalizeUrl(String(rawUrl || `https://${d}`));
+    const { html } = await fetchHtml(target);
+    if (html) battery = buildBusinessPrompts(b, d, extractText(html).text);
+  } catch { /* generic battery */ }
+
+  const base = simulatePromptTests(b, d, battery);
   // Live per-prompt enrichment (real providers when keys exist, else heuristic).
   const tests = await Promise.all(
     base.map(async (t) => {
@@ -69,5 +80,5 @@ export async function POST(req: NextRequest) {
     console.error("prompt persist failed (non-fatal):", e);
   }
 
-  return NextResponse.json({ tests, competitors, comparison, avgVisibility, providers: providerStatus() });
+  return NextResponse.json({ tests, competitors, comparison, avgVisibility, providers: providerStatus(), batterySource: battery ? "business" : "generic" });
 }

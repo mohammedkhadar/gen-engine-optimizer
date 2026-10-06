@@ -1,79 +1,91 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress } from "@/components/ui";
-import { Loader2, Plus, Pencil, X, Play } from "lucide-react";
+import { Loader2, Plus, Pencil, X, Play, RotateCw } from "lucide-react";
 import { loadCachedAudit } from "@/lib/audit-cache";
 
-const LS_PROMPTS = "rankai:promptset";
+const LS_RESULTS = "rankai:prompt-results";
+const LS_TARGET = "rankai:prompt-target";
 
-type SavedSet = { brand: string; domain: string; url: string; prompts: string[] };
+type Target = { brand: string; domain: string; url: string };
 
-function loadSaved(brand: string, domain: string): SavedSet | null {
+function resultsKey(t: Target) {
+  return `${t.brand.toLowerCase()}|${t.domain.toLowerCase()}`;
+}
+
+function loadResults(t: Target): { tests: any[]; source: any } | null {
   try {
-    const all = JSON.parse(localStorage.getItem(LS_PROMPTS) ?? "{}");
-    return all[`${brand.toLowerCase()}|${domain.toLowerCase()}`] ?? null;
+    const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
+    return all[resultsKey(t)] ?? null;
   } catch {
     return null;
   }
 }
 
-function saveSet(s: SavedSet) {
+function saveResults(t: Target, tests: any[], source: any) {
   try {
-    const all = JSON.parse(localStorage.getItem(LS_PROMPTS) ?? "{}");
-    all[`${s.brand.toLowerCase()}|${s.domain.toLowerCase()}`] = s;
-    localStorage.setItem(LS_PROMPTS, JSON.stringify(all));
+    const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
+    all[resultsKey(t)] = { tests, source, at: Date.now() };
+    localStorage.setItem(LS_RESULTS, JSON.stringify(all));
+    localStorage.setItem(LS_TARGET, JSON.stringify(t));
   } catch {}
 }
 
+function loadTarget(): Target | null {
+  try {
+    const t = JSON.parse(localStorage.getItem(LS_TARGET) ?? "null");
+    if (t?.brand && t?.domain) return { brand: t.brand, domain: t.domain, url: t.url ?? "" };
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function PromptsPage() {
-  const [brand, setBrand] = useState("");
-  const [domain, setDomain] = useState("");
-  const [url, setUrl] = useState("");
+  const [target, setTarget] = useState<Target | null>(null);
   const [tests, setTests] = useState<any[]>([]);
   const [source, setSource] = useState<"custom" | "llm" | "business" | "generic" | null>(null);
   const [loading, setLoading] = useState(false);
-  // Prefill the site URL from this account's last audit (no extra input).
-  useEffect(() => {
-    loadCachedAudit().then((data) => {
-      if (data?.url) {
-        setUrl(data.url);
-        try {
-          const host = new URL(data.url).hostname.replace(/^www\./, "");
-          setDomain((d) => d || host);
-        } catch {}
-      }
-    });
-  }, []);
   // setup dialog
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dBrand, setDBrand] = useState("");
+  const [dDomain, setDDomain] = useState("");
+  const [dUrl, setDUrl] = useState("");
   const [draft, setDraft] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
   const [suggestSource, setSuggestSource] = useState<string | null>(null);
+  const [suggestedFor, setSuggestedFor] = useState("");
 
-  const run = async (prompts?: string[]) => {
-    setLoading(true);
-    const res = await fetch("/api/visibility", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brand, domain, url: url.trim() || undefined, prompts }),
-    });
-    const data = await res.json();
-    setTests(data.tests);
-    setSource(data.batterySource ?? null);
-    setLoading(false);
-  };
-
-  const openDialog = async (forBrand = brand, forDomain = domain, forUrl = url) => {
-    const saved = loadSaved(forBrand, forDomain);
-    if (saved?.prompts?.length) {
-      setDraft(saved.prompts);
-      setDialogOpen(true);
-      return;
+  // First visit: restore last target + results, else open the setup dialog.
+  useEffect(() => {
+    const t = loadTarget();
+    if (t) {
+      setTarget(t);
+      const saved = loadResults(t);
+      if (saved) {
+        setTests(saved.tests);
+        setSource(saved.source);
+        return;
+      }
     }
-    // First visit for this brand: suggest a battery, then let them edit.
-    setDraft([]);
-    setSuggestSource(null);
+    // No previous run: prefill URL from audit, open setup.
+    loadCachedAudit().then((data) => {
+      if (data?.url) {
+        setDUrl((u) => u || data.url);
+        try {
+          const host = new URL(data.url).hostname.replace(/^www\./, "");
+          setDDomain((d) => d || host);
+        } catch {}
+      }
+    });
     setDialogOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const suggest = async (forBrand: string, forDomain: string, forUrl: string) => {
+    const key = `${forBrand}|${forDomain}|${forUrl}`;
+    if (!forBrand.trim() || !forDomain.trim() || suggestedFor === key) return;
+    setSuggestedFor(key);
     setSuggesting(true);
     try {
       const res = await fetch("/api/prompts/suggest", {
@@ -89,12 +101,52 @@ export default function PromptsPage() {
     }
   };
 
+  // Auto-suggest once brand+domain are typed in the dialog.
+  useEffect(() => {
+    if (dialogOpen && dBrand.trim() && dDomain.trim() && !draft.length && !suggesting) {
+      suggest(dBrand, dDomain, dUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dialogOpen, dBrand, dDomain]);
+
+  const run = async (t: Target, prompts?: string[]) => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/visibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ brand: t.brand, domain: t.domain, url: t.url || undefined, prompts }),
+      });
+      const data = await res.json();
+      setTests(data.tests);
+      setSource(data.batterySource ?? null);
+      saveResults(t, data.tests, data.batterySource ?? null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const saveAndRun = () => {
     const clean = draft.map((p) => p.trim()).filter(Boolean).slice(0, 10);
-    if (!clean.length) return;
-    saveSet({ brand, domain, url, prompts: clean });
+    if (!clean.length || !dBrand.trim() || !dDomain.trim()) return;
+    const t = { brand: dBrand.trim(), domain: dDomain.trim(), url: dUrl.trim() };
+    setTarget(t);
     setDialogOpen(false);
-    run(clean);
+    run(t, clean);
+  };
+
+  const openEdit = () => {
+    if (target) {
+      setDBrand(target.brand);
+      setDDomain(target.domain);
+      setDUrl(target.url);
+      const saved = loadResults(target);
+      void saved;
+    }
+    // Seed draft from current results' prompts for editing.
+    if (tests.length) setDraft(tests.map((t) => t.prompt));
+    setSuggestSource(null);
+    setDialogOpen(true);
   };
 
   return (
@@ -103,39 +155,34 @@ export default function PromptsPage() {
         <h1 className="text-2xl font-bold">Prompt Lab</h1>
         <p className="text-sm text-slate-400">Your buyer prompts, tested across AI engines. See who gets cited.</p>
       </div>
-      <Card>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Brand name"
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
-          <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="domain.com"
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
-          <button onClick={() => openDialog()} disabled={loading || !brand.trim() || !domain.trim()}
-            className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-60">
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Pencil size={15} />} {loading ? "Testing…" : "Set up prompts"}
-          </button>
-        </div>
-        {url && <p className="mt-2 text-xs text-slate-500">Prompts tailor to <span className="text-slate-300">{url}</span> (from your last audit).</p>}
-        {source && (
-          <p className="mt-2 text-xs text-slate-500">
-            {source === "custom"
-              ? `${tests.length} custom prompt${tests.length === 1 ? "" : "s"} — edit anytime below.`
-              : source === "llm"
-                ? "Prompts below were written by AI from this site's actual content."
-                : source === "business"
-                  ? "Prompts below were built from this site's offering and location."
-                  : "Site unreadable — fell back to generic prompts. Check the URL and retry."}
-          </p>
-        )}
-      </Card>
 
-      {tests.length > 0 && (
-        <div className="flex justify-end">
-          <button onClick={() => openDialog()} className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white">
-            <Pencil size={13} /> Edit prompts ({tests.length})
-          </button>
-        </div>
+      {target && (
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <span className="font-semibold">{target.brand}</span>
+              <span className="ml-2 text-sm text-slate-400">{target.domain}</span>
+              {source && (
+                <span className="ml-2 text-xs text-slate-500">
+                  {source === "custom" ? `${tests.length} custom prompts` : source === "llm" ? "AI-written prompts" : source === "business" ? "Site-based prompts" : "Generic prompts"}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={openEdit} disabled={loading}
+                className="glass flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium hover:bg-white/10 disabled:opacity-50">
+                <Pencil size={14} /> Edit prompts
+              </button>
+              <button onClick={() => run(target)} disabled={loading}
+                className="flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-slate-200 disabled:opacity-60">
+                {loading ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />} {loading ? "Testing…" : "Re-run tests"}
+              </button>
+            </div>
+          </div>
+        </Card>
       )}
-      {tests.length === 0 && (
+
+      {tests.length === 0 && !loading && (
         <Card className="text-center text-sm text-slate-400">
           No tests yet — set up your prompts to run your first battery. Results show mention rate, position & sentiment per engine.
         </Card>
@@ -147,16 +194,23 @@ export default function PromptsPage() {
           <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#111726] p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold">Your 5 buyer prompts</h2>
+                <h2 className="text-lg font-bold">Your buyer prompts</h2>
                 <p className="text-xs text-slate-400">
-                  {suggesting ? "Reading your site and drafting suggestions…" : suggestSource === "llm" ? "Suggested by AI from your site — edit freely." : suggestSource ? "Suggested from your site — edit freely." : "Edit, remove, or add your own."}
+                  {suggesting ? "Reading your site and drafting suggestions…" : suggestSource ? `Suggested ${suggestSource === "llm" ? "by AI " : ""}from your site — edit freely.` : "Enter your brand to get suggestions, or write your own."}
                 </p>
               </div>
               <button onClick={() => setDialogOpen(false)} className="rounded-full p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"><X size={16} /></button>
             </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <input value={dBrand} onChange={(e) => setDBrand(e.target.value)} placeholder="Brand name"
+                className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
+              <input value={dDomain} onChange={(e) => setDDomain(e.target.value)} placeholder="domain.com"
+                className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
+            </div>
+            {dUrl ? <p className="mt-2 text-xs text-slate-500">Tailoring to <span className="text-slate-300">{dUrl}</span> (from your last audit).</p> : null}
             {suggesting ? (
               <div className="flex items-center justify-center gap-2 py-10 text-sm text-slate-400">
-                <Loader2 size={16} className="animate-spin" /> Drafting prompts from {domain}…
+                <Loader2 size={16} className="animate-spin" /> Drafting prompts{dDomain ? ` from ${dDomain}` : ""}…
               </div>
             ) : (
               <div className="mt-4 space-y-2">
@@ -170,13 +224,19 @@ export default function PromptsPage() {
                       className="mt-2 rounded-lg p-1.5 text-slate-500 hover:bg-white/10 hover:text-red-300"><X size={14} /></button>
                   </div>
                 ))}
-                {draft.length < 10 && (
+                {!draft.length && !suggesting && (
+                  <button onClick={() => suggest(dBrand, dDomain, dUrl)} disabled={!dBrand.trim() || !dDomain.trim()}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 px-4 py-2.5 text-sm hover:bg-white/5 disabled:opacity-40">
+                    Suggest 5 prompts for my business
+                  </button>
+                )}
+                {!!draft.length && draft.length < 10 && (
                   <button onClick={() => setDraft([...draft, ""])}
                     className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-white/20 px-4 py-2.5 text-sm text-slate-300 hover:bg-white/5">
                     <Plus size={14} /> Add another prompt ({draft.length}/10)
                   </button>
                 )}
-                <button onClick={saveAndRun} disabled={!draft.some((p) => p.trim()) || loading}
+                <button onClick={saveAndRun} disabled={!draft.some((p) => p.trim()) || !dBrand.trim() || !dDomain.trim() || loading}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-slate-200 disabled:opacity-50">
                   {loading ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />} Save & run {draft.filter((p) => p.trim()).length} prompt tests
                 </button>

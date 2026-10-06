@@ -8,7 +8,7 @@ export default function PromptsPage() {
   const [domain, setDomain] = useState("acme.com");
   const [url, setUrl] = useState("");
   const [tests, setTests] = useState<any[]>([]);
-  const [source, setSource] = useState<"business" | "generic" | null>(null);
+  const [source, setSource] = useState<"llm" | "business" | "generic" | null>(null);
   const [loading, setLoading] = useState(false);
 
   const run = async () => {
@@ -45,9 +45,11 @@ export default function PromptsPage() {
         </div>
         {source && (
           <p className="mt-2 text-xs text-slate-500">
-            {source === "business"
-              ? "Prompts below were written from this site's actual offering and location."
-              : "Site unreadable — fell back to generic prompts. Check the URL and retry."}
+            {source === "llm"
+              ? "Prompts below were written by AI from this site's actual content."
+              : source === "business"
+                ? "Prompts below were built from this site's offering and location."
+                : "Site unreadable — fell back to generic prompts. Check the URL and retry."}
           </p>
         )}
       </Card>

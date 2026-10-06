@@ -76,16 +76,21 @@ async function queryOpenAICompatible(
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return data.choices?.[0]?.message?.content ?? null;
+    // Reasoning models (gpt-oss) put output in `reasoning` with empty content.
+    const msg = data.choices?.[0]?.message;
+    const text: string | null = msg?.content || msg?.reasoning || null;
+    return text && text.trim() ? text : null;
   } catch {
     return null;
   }
 }
 
-/** Groq — hosted open-source models (GPT-OSS, Qwen, Llama). Generous free tier. */
+/** Groq — hosted open-source models (Qwen, GPT-OSS, Llama). Generous free tier.
+ *  Default is a plain chat model: reasoning models answer in a separate field
+ *  that doesn't suit prompt generation or citation snippets. */
 async function queryGroq(prompt: string): Promise<{ text: string; model: string } | null> {
   if (!process.env.GROQ_API_KEY) return null;
-  const model = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+  const model = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
   const text = await queryOpenAICompatible("https://api.groq.com/openai/v1", process.env.GROQ_API_KEY, model, prompt);
   return text ? { text, model } : null;
 }
@@ -202,6 +207,57 @@ export async function livePromptTest(brand: string, domain: string, prompt: stri
       provider: text ? rowProvider : "heuristic",
     };
   });
+}
+
+/** Generate 5 buyer prompts from real page content using an LLM (Groq first,
+ *  then OpenAI). Returns null when no key is set or parsing fails — callers
+ *  fall back to the template battery. */
+export async function generateBusinessPrompts(
+  brand: string,
+  domain: string,
+  pageText: string
+): Promise<string[] | null> {
+  const text = pageText.slice(0, 3000);
+  if (!text.trim()) return null;
+  const system = `You write buyer research prompts for AI-visibility testing. Given a business web page, write exactly 5 diverse questions a real buyer would ask an AI assistant: one comparing alternatives, one about reputation/reviews, one direct vs-competitor, one about pricing, one about community opinion (Reddit/forums). Reply with ONLY a JSON array of 5 strings, no other text.`;
+  const user = `Business: ${brand} (${domain}). Page content:\n${text}\n\nWrite the 5 buyer questions.`;
+  const attempts: { base: string; key?: string; model: string }[] = [
+    { base: "https://api.groq.com/openai/v1", key: process.env.GROQ_API_KEY, model: process.env.GROQ_MODEL || "qwen/qwen3.8-27b" },
+    { base: "https://api.openai.com/v1", key: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL || "gpt-4o-mini" },
+  ];
+  for (const a of attempts) {
+    if (!a.key) continue;
+    try {
+      const res = await fetch(`${a.base}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${a.key}` },
+        body: JSON.stringify({
+          model: a.model,
+          messages: [{ role: "system", content: system }, { role: "user", content: user }],
+          max_tokens: 400,
+          temperature: 0.7,
+        }),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const msg = data.choices?.[0]?.message;
+      let raw: string = msg?.content || msg?.reasoning || "";
+      raw = raw.replace(/```json|```/g, "").trim();
+      // Reasoning models may wrap the answer in thinking — extract the last
+      // JSON array-looking block if the whole text isn't one.
+      if (!raw.startsWith("[")) {
+        const m = raw.match(/\[[\s\S]*\]/);
+        if (m) raw = m[0];
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length === 5 && parsed.every((p) => typeof p === "string" && p.length > 10)) {
+        return parsed;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 export function providerStatus() {

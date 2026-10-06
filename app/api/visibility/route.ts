@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { simulatePromptTests, competitorSet, brandStats, buildBusinessPrompts } from "@/lib/geo-engine";
 import { normalizeUrl, fetchHtml, extractText } from "@/lib/fetch-page";
-import { livePromptTest, providerStatus } from "@/lib/providers/citations";
+import { livePromptTest, providerStatus, generateBusinessPrompts } from "@/lib/providers/citations";
 import { prisma, hasDatabase } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
@@ -11,14 +11,25 @@ export async function POST(req: NextRequest) {
   const b = String(brand);
   const d = String(domain);
 
-  // Business-relevant prompts: read the site first, then write the battery
-  // from its real offering/location. Falls back to generic battery when the
-  // page can't be fetched.
+  // Business-relevant prompts: read the site, then let an LLM write the
+  // battery from its real offering (Groq/OpenAI). Falls back to the template
+  // battery from page facts, then to the generic battery when unfetchable.
   let battery: string[] | undefined;
+  let batterySource: "llm" | "business" | "generic" = "generic";
   try {
     const target = normalizeUrl(String(rawUrl || `https://${d}`));
     const { html } = await fetchHtml(target);
-    if (html) battery = buildBusinessPrompts(b, d, extractText(html).text);
+    if (html) {
+      const pageText = extractText(html).text;
+      const llm = await generateBusinessPrompts(b, d, pageText);
+      if (llm) {
+        battery = llm;
+        batterySource = "llm";
+      } else {
+        battery = buildBusinessPrompts(b, d, pageText);
+        batterySource = "business";
+      }
+    }
   } catch { /* generic battery */ }
 
   const base = simulatePromptTests(b, d, battery);
@@ -99,5 +110,5 @@ export async function POST(req: NextRequest) {
     console.error("prompt persist failed (non-fatal):", e);
   }
 
-  return NextResponse.json({ tests, competitors, comparison, avgVisibility, providers: providerStatus(), batterySource: battery ? "business" : "generic" });
+  return NextResponse.json({ tests, competitors, comparison, avgVisibility, providers: providerStatus(), batterySource });
 }

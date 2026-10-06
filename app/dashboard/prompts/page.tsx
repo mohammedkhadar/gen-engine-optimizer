@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress } from "@/components/ui";
 import { Loader2, Plus, Pencil, X, Play } from "lucide-react";
+import { loadCachedAudit } from "@/lib/audit-cache";
 
 const LS_PROMPTS = "rankai:promptset";
 
@@ -25,12 +26,24 @@ function saveSet(s: SavedSet) {
 }
 
 export default function PromptsPage() {
-  const [brand, setBrand] = useState("Acme");
-  const [domain, setDomain] = useState("acme.com");
+  const [brand, setBrand] = useState("");
+  const [domain, setDomain] = useState("");
   const [url, setUrl] = useState("");
   const [tests, setTests] = useState<any[]>([]);
   const [source, setSource] = useState<"custom" | "llm" | "business" | "generic" | null>(null);
   const [loading, setLoading] = useState(false);
+  // Prefill the site URL from this account's last audit (no extra input).
+  useEffect(() => {
+    loadCachedAudit().then((data) => {
+      if (data?.url) {
+        setUrl(data.url);
+        try {
+          const host = new URL(data.url).hostname.replace(/^www\./, "");
+          setDomain((d) => d || host);
+        } catch {}
+      }
+    });
+  }, []);
   // setup dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<string[]>([]);
@@ -91,18 +104,17 @@ export default function PromptsPage() {
         <p className="text-sm text-slate-400">Your buyer prompts, tested across AI engines. See who gets cited.</p>
       </div>
       <Card>
-        <div className="grid gap-2 sm:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-3">
           <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Brand name"
             className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
           <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="domain.com"
             className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none focus:border-violet-500/60" />
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Site URL for tailored prompts (optional)"
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm outline-none placeholder:text-slate-600 focus:border-violet-500/60" />
-          <button onClick={() => openDialog()} disabled={loading}
+          <button onClick={() => openDialog()} disabled={loading || !brand.trim() || !domain.trim()}
             className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-60">
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Pencil size={15} />} {loading ? "Testing…" : "Set up prompts"}
           </button>
         </div>
+        {url && <p className="mt-2 text-xs text-slate-500">Prompts tailor to <span className="text-slate-300">{url}</span> (from your last audit).</p>}
         {source && (
           <p className="mt-2 text-xs text-slate-500">
             {source === "custom"

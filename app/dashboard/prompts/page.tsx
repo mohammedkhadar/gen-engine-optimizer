@@ -184,25 +184,30 @@ export default function PromptsPage() {
       {target && (
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+            <div className="flex flex-wrap items-center gap-x-2">
               <span className="font-semibold">{target.brand}</span>
-              <span className="ml-2 text-sm text-slate-400">{target.domain}</span>
+              <span className="text-sm text-slate-400">{target.domain}</span>
+              <button onClick={openEdit} disabled={loading} title="Edit prompts"
+                className="flex items-center gap-1 text-xs text-slate-500 hover:text-white disabled:opacity-50">
+                <Pencil size={12} /> Edit
+              </button>
               {source && (
-                <span className="ml-2 text-xs text-slate-500">
+                <span className="w-full text-xs text-slate-500 sm:w-auto">
                   {source === "custom" ? `${tests.length} custom prompts` : source === "llm" ? "AI-written prompts" : source === "business" ? "Site-based prompts" : "Generic prompts"}
                 </span>
               )}
             </div>
-            <div className="flex gap-2">
-              <button onClick={openEdit} disabled={loading}
-                className="glass flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium hover:bg-white/10 disabled:opacity-50">
-                <Pencil size={14} /> Edit prompts
-              </button>
-              <button onClick={() => run(target)} disabled={loading}
+            {tests.length ? (
+              <button onClick={() => run(target, tests.map((t) => t.prompt))} disabled={loading}
                 className="flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-slate-200 disabled:opacity-60">
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <RotateCw size={14} />} {loading ? "Testing…" : "Re-run tests"}
               </button>
-            </div>
+            ) : (
+              <button onClick={() => setDialogOpen(true)} disabled={loading}
+                className="flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-slate-200 disabled:opacity-60">
+                <Play size={14} /> Set up prompts
+              </button>
+            )}
           </div>
         </Card>
       )}

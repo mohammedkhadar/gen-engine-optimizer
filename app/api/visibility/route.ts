@@ -1,36 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { simulatePromptTests, competitorSet, brandStats, buildBusinessPrompts } from "@/lib/geo-engine";
-import { normalizeUrl, fetchHtml, extractText } from "@/lib/fetch-page";
-import { livePromptTest, providerStatus, generateBusinessPrompts } from "@/lib/providers/citations";
+import { simulatePromptTests, competitorSet, brandStats } from "@/lib/geo-engine";
+import { livePromptTest, providerStatus } from "@/lib/providers/citations";
+import { buildBattery } from "@/lib/prompts";
 import { prisma, hasDatabase } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
-  const { brand = "Acme", domain = "acme.com", competitors: rivalNames = [], url: rawUrl } = await req.json().catch(() => ({}));
+  const { brand = "Acme", domain = "acme.com", competitors: rivalNames = [], url: rawUrl, prompts: customPrompts } = await req.json().catch(() => ({}));
   const b = String(brand);
   const d = String(domain);
 
-  // Business-relevant prompts: read the site, then let an LLM write the
-  // battery from its real offering (Groq/OpenAI). Falls back to the template
-  // battery from page facts, then to the generic battery when unfetchable.
-  let battery: string[] | undefined;
-  let batterySource: "llm" | "business" | "generic" = "generic";
-  try {
-    const target = normalizeUrl(String(rawUrl || `https://${d}`));
-    const { html } = await fetchHtml(target);
-    if (html) {
-      const pageText = extractText(html).text;
-      const llm = await generateBusinessPrompts(b, d, pageText);
-      if (llm) {
-        battery = llm;
-        batterySource = "llm";
-      } else {
-        battery = buildBusinessPrompts(b, d, pageText);
-        batterySource = "business";
-      }
-    }
-  } catch { /* generic battery */ }
+  const { prompts: battery, source: batterySource } = await buildBattery(b, d, rawUrl ? String(rawUrl) : undefined, customPrompts);
 
   const base = simulatePromptTests(b, d, battery);
   // Live per-prompt enrichment (real providers when keys exist, else heuristic).

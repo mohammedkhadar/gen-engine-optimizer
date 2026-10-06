@@ -416,7 +416,8 @@ export function buildBusinessPrompts(brand: string, domain: string, text: string
 }
 
 export function simulatePromptTests(brand: string, domain: string, customPrompts?: string[]) {
-  const prompts = customPrompts?.length === 5 ? customPrompts : [
+  const list = (customPrompts ?? []).map((p) => String(p).trim()).filter(Boolean).slice(0, 10);
+  const prompts = list.length ? list : [
     `What is the best ${brand} alternative for small business?`,
     `Is ${brand} reliable? Reviews and pricing?`,
     `${brand} vs competitors — which should I choose?`,
@@ -425,6 +426,7 @@ export function simulatePromptTests(brand: string, domain: string, customPrompts
   ];
   const engines = ["ChatGPT", "Perplexity", "Gemini", "Claude", "Copilot"];
   const seed = hashStr(brand + domain);
+  const CATS = ["Comparison", "Reputation", "Comparison", "Pricing", "Reputation"];
   return prompts.map((prompt, i) => {
     const mentions = engines.map((engine, j) => {
       const r = hashStr(prompt + engine) % 100;
@@ -438,7 +440,7 @@ export function simulatePromptTests(brand: string, domain: string, customPrompts
     return {
       id: `p${i}`,
       prompt,
-      category: ["Comparison", "Reputation", "Comparison", "Pricing", "Reputation"][i],
+      category: CATS[i % CATS.length],
       mentions: mentionCount,
       totalEngines: engines.length,
       visibility: Math.round((mentionCount / engines.length) * 100),

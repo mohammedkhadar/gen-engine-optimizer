@@ -260,6 +260,68 @@ export async function generateBusinessPrompts(
   return null;
 }
 
+/** Suggest rival businesses (name + domain) from page content via LLM.
+ *  Returns [] when no key is set — the dialog then starts empty for manual entry. */
+export async function suggestCompetitors(
+  brand: string,
+  domain: string,
+  pageText: string
+): Promise<{ name: string; domain: string }[]> {
+  const text = pageText.slice(0, 2500);
+  if (!text.trim()) return [];
+  const system = `You identify competitors for AI-visibility benchmarking. Given a business web page, name 3 direct competing businesses (not the business itself). Reply with ONLY a JSON array of objects like [{"name":"...","domain":"..."}], no other text. Domains must be plausible root domains.`;
+  const attempts: { base: string; key?: string; model: string }[] = [
+    { base: "https://api.groq.com/openai/v1", key: process.env.GROQ_API_KEY, model: process.env.GROQ_MODEL || "qwen/qwen3.8-27b" },
+    { base: "https://api.openai.com/v1", key: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL || "gpt-4o-mini" },
+  ];
+  for (const a of attempts) {
+    if (!a.key) continue;
+    try {
+      const res = await fetch(`${a.base}/chat/completions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${a.key}` },
+        body: JSON.stringify({
+          model: a.model,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: `Business: ${brand} (${domain}). Page content:\n${text}` },
+          ],
+          max_tokens: 300,
+          temperature: 0.5,
+        }),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const msg = data.choices?.[0]?.message;
+      let raw: string = msg?.content || "";
+      raw = raw.replace(/```json|```/g, "").trim();
+      if (!raw.startsWith("[")) {
+        const m = raw.match(/\[[\s\S]*\]/);
+        if (m) raw = m[0];
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) continue;
+      const clean = parsed
+        .filter((c: any) => c && typeof c.name === "string" && c.name.trim())
+        .map((c: any) => ({
+          name: String(c.name).trim().slice(0, 60),
+          domain: String(c.domain ?? "")
+            .trim()
+            .toLowerCase()
+            .replace(/^https?:\/\//, "")
+            .replace(/\/.*$/, "")
+            .slice(0, 80),
+        }))
+        .filter((c: { name: string }) => c.name.toLowerCase() !== brand.toLowerCase())
+        .slice(0, 5);
+      if (clean.length >= 2) return clean;
+    } catch {
+      continue;
+    }
+  }
+  return [];
+}
+
 export function providerStatus() {
   const live =
     process.env.PERPLEXITY_API_KEY ||

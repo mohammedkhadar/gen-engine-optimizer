@@ -196,7 +196,10 @@ export default function CompetitorsPage() {
 
       {rows.length === 0 && !loading && (
         <Card className="text-center text-sm text-slate-400">
-          No comparison yet — set up your competitors to run your first share-of-voice table.
+          <p>No comparison yet — set up your competitors to run your first share-of-voice table.</p>
+          <button onClick={() => setDialogOpen(true)} className="mt-4 inline-block rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-black hover:bg-slate-200">
+            Set up competitors →
+          </button>
         </Card>
       )}
 

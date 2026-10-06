@@ -184,7 +184,10 @@ export default function PromptsPage() {
 
       {tests.length === 0 && !loading && (
         <Card className="text-center text-sm text-slate-400">
-          No tests yet — set up your prompts to run your first battery. Results show mention rate, position & sentiment per engine.
+          <p>No tests yet — set up your prompts to run your first battery. Results show mention rate, position & sentiment per engine.</p>
+          <button onClick={() => setDialogOpen(true)} className="mt-4 inline-block rounded-xl bg-white px-6 py-2.5 text-sm font-semibold text-black hover:bg-slate-200">
+            Set up prompts →
+          </button>
         </Card>
       )}
 

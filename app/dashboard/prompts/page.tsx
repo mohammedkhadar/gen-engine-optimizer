@@ -13,7 +13,7 @@ function resultsKey(t: Target) {
   return `${t.brand.toLowerCase()}|${t.domain.toLowerCase()}`;
 }
 
-function loadResults(t: Target): { tests: any[]; source: any } | null {
+function loadResults(t: Target): { tests: any[]; source: any; auditUrl?: string } | null {
   try {
     const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
     return all[resultsKey(t)] ?? null;

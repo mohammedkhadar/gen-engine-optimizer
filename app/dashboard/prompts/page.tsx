@@ -56,32 +56,45 @@ export default function PromptsPage() {
   const [suggestSource, setSuggestSource] = useState<string | null>(null);
   const [suggestedFor, setSuggestedFor] = useState("");
 
-  // First visit: restore last target + results for the CURRENT audit URL.
-  // If the audit moved to a different site, previous results belong to that
-  // site — drop them so stale numbers never pose as current.
+  // First visit: restore last target + results for the CURRENT audit site.
+  // If the audit moved to a different site (host mismatch), previous results
+  // belong to that site — drop them so stale numbers never pose as current.
+  // Host comparison (not URL strings) so trailing slashes, http/https and
+  // www prefixes can't sneak stale results through, and legacy records saved
+  // before URL stamping are covered too.
+  const hostOf = (u?: string | null) => {
+    try {
+      if (!u) return null;
+      const withScheme = /^[a-z]+:\/\//i.test(u) ? u : `https://${u}`;
+      return new URL(withScheme).hostname.replace(/^www\./, "").toLowerCase();
+    } catch {
+      return null;
+    }
+  };
   useEffect(() => {
     loadCachedAudit().then((audit) => {
       const t = loadTarget();
       if (!t) {
         if (audit?.url) {
           setDUrl(audit.url);
-          try {
-            const host = new URL(audit.url).hostname.replace(/^www\./, "");
-            setDDomain(host);
-          } catch {}
+          const host = hostOf(audit.url);
+          if (host) setDDomain(host);
         }
         setDialogOpen(true);
         return;
       }
       const saved = loadResults(t);
-      if (saved && saved.auditUrl && audit?.url && saved.auditUrl !== audit.url) {
+      const auditHost = hostOf(audit?.url);
+      const stampedMismatch = !!(saved && saved.auditUrl && audit?.url && saved.auditUrl !== audit.url);
+      const hostMismatch = !!(saved && auditHost && hostOf(t.domain) && hostOf(t.domain) !== auditHost);
+      if (saved && (stampedMismatch || hostMismatch)) {
         try {
           const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
           delete all[`${t.brand.toLowerCase()}|${t.domain.toLowerCase()}`];
           localStorage.setItem(LS_RESULTS, JSON.stringify(all));
         } catch {}
         setTarget(t);
-        setDUrl(audit.url);
+        if (audit?.url) setDUrl(audit.url);
         return;
       }
       setTarget(t);

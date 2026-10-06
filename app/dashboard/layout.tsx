@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { LayoutDashboard, Radar, MessagesSquare, Trophy, FileText } from "lucide-react";
+import { LayoutDashboard, Radar, MessagesSquare, Trophy } from "lucide-react";
 import { SignOutButton } from "@/components/SignOutButton";
 
 const links = [
@@ -9,7 +9,6 @@ const links = [
   { href: "/dashboard/audit", label: "GEO Audit", icon: Radar },
   { href: "/dashboard/prompts", label: "Prompt Lab", icon: MessagesSquare },
   { href: "/dashboard/competitors", label: "Competitors", icon: Trophy },
-  { href: "/dashboard/content", label: "Content Optimizer", icon: FileText },
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

@@ -327,19 +327,17 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     { type: "Extractable Facts", found: s.hasStats || s.hasTables || s.hasLists, detail: s.hasStats || s.hasTables || s.hasLists ? "Detected" : "Weak — add stats, tables, lists" },
   ];
 
-  // Rank fixes by score gap × weight. `link` deep-links into the generator
-  // that produces the fix, so an audit finding is one click from done.
-  const GEN = "/dashboard/content";
+  // Rank fixes by score gap × weight.
   const thinPage = fetched && s.wordCount < 50;
   const topActions = [
     ...(!s.hasSchema
-      ? [{ title: "Add schema bundle (JSON-LD)", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix.", link: GEN, linkLabel: "Generate the bundle →" }]
+      ? [{ title: "Add schema bundle (JSON-LD)", impact: "+12–18 pts", effort: "1–2 hrs", detail: "Organization + WebSite + FAQPage + Article. This is the single highest-leverage GEO fix." }]
       : []),
     ...(!s.hasFAQ
-      ? [{ title: "Add AI excerpt & FAQ", impact: "+8–12 pts", effort: "45 min", detail: "40–60 word direct answer at top, then 5 question-style H2s with concise answers.", link: GEN, linkLabel: "Generate excerpt + FAQs →" }]
+      ? [{ title: "Add AI excerpt & FAQ", impact: "+8–12 pts", effort: "45 min", detail: "40–60 word direct answer at top, then 5 question-style H2s with concise answers." }]
       : []),
     ...(!s.hasAuthor
-      ? [{ title: "Add authorship & sources", impact: "+6–10 pts", effort: "30 min", detail: "Byline, credentials, publish date, 3+ outbound citations to primary sources.", link: GEN, linkLabel: "Open content optimizer →" }]
+      ? [{ title: "Add authorship & sources", impact: "+6–10 pts", effort: "30 min", detail: "Byline, credentials, publish date, 3+ outbound citations to primary sources." }]
       : []),
     ...(!s.hasPricingPage && !s.hasComparePage
       ? [{ title: "Publish comparison & pricing pages", impact: "+6–9 pts", effort: "2–4 hrs", detail: "AI engines cite '/vs', '/pricing', '/alternatives' pages heavily. Add tables." }]
@@ -351,7 +349,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
       ? [{ title: "Publish a pricing page", impact: "+4–6 pts", effort: "1–2 hrs", detail: `Comparison content detected${s.compareUrl ? ` at ${s.compareUrl}` : ""} — now add transparent pricing with tables, the most-cited page type of all.` }]
       : []),
     { title: "Earn 5 third-party mentions", impact: "+5–10 pts", effort: "Ongoing", detail: "Reddit, G2, Capterra, Quora, niche blogs — LLMs memorize these corpora." },
-    { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary.", link: GEN, linkLabel: "Generate my llms.txt →" },
+    { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary." },
   ];
 
   // Thin/walled pages: page-content fixes (excerpts, comparisons, authorship)

@@ -3,7 +3,7 @@ import { Nav } from "@/components/Nav";
 import { Footer, Card, Badge, SectionTitle, Progress } from "@/components/ui";
 import { AuditWidget } from "@/components/AuditWidget";
 import {
-  Sparkles, Radar, MessagesSquare, Trophy, FileText, Quote,
+  Sparkles, Radar, MessagesSquare, Trophy, Quote,
   Check, ArrowRight, Zap, Globe, BrainCircuit, ShieldCheck,
 } from "lucide-react";
 
@@ -12,7 +12,6 @@ const features = [
   { icon: BrainCircuit, title: "GEO Site Audit", desc: "60+ checks: schema, E-E-A-T, answer-readiness, crawlability, citability. Real fetch + explainable score." },
   { icon: MessagesSquare, title: "Prompt Lab", desc: "Test the exact prompts your buyers ask. See which engines cite you — and which cite competitors." },
   { icon: Trophy, title: "Competitor Intel", desc: "Benchmark visibility vs rivals. Steal their citation sources, FAQs, and third-party mentions." },
-  { icon: FileText, title: "Content Optimizer", desc: "Paste any page, get an AI-excerpt block, FAQ schema, and quotable stats rewritten for LLM citation." },
   { icon: Quote, title: "Citation Monitor", desc: "Get alerted when AI answers mention you — or stop mentioning you. Track every source URL." },
 ];
 

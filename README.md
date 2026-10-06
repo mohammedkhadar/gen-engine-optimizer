@@ -7,7 +7,7 @@ SaaS for businesses to get cited by ChatGPT, Perplexity, Gemini, Claude, Copilot
 - **Dashboard** (`/dashboard`): score, trends, engines, radar, citation feed
 - **GEO Audit** (`/dashboard/audit`): live fetch → 6 pillars + per-engine likelihood + fixes. Persisted to Postgres or local `.data/`
 - **Prompt Lab** (`/dashboard/prompts`): heuristic now, **live via Perplexity/Exa/OpenAI** when keys set
-- **Competitors, Content Optimizer** (`/dashboard/competitors`, `/dashboard/content`)
+- **Competitors** (`/dashboard/competitors`): editable rivals, share-of-voice table
 - **Prod APIs**: `POST /api/audit`, `POST /api/visibility`, `GET /api/history?url=`, `GET /api/health`, `POST /api/llms-txt`, `POST /api/schema`, `GET /api/reports?format=html`, `GET /api/cron/daily?secret=`, `POST /api/billing/checkout`, `POST /api/billing/webhook`, `GET /llms.txt`
 
 ## Run locally (demo, zero keys)

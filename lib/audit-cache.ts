@@ -47,21 +47,10 @@ export async function loadCachedAudit(): Promise<any | null> {
   }
 }
 
-// Legacy topActions stored before deep-links existed: resolve the same
-// generator links by title (including pre-rename variants) so old cached
-// audits don't fall back to looping on the audit page.
-const GEN = "/dashboard/content";
-const LEGACY_FIX_LINKS: Record<string, { link: string; linkLabel: string }> = {
-  "Add schema bundle (JSON-LD)": { link: GEN, linkLabel: "Generate the bundle →" },
-  "Add JSON-LD schema bundle": { link: GEN, linkLabel: "Generate the bundle →" },
-  "Add AI excerpt & FAQ": { link: GEN, linkLabel: "Generate excerpt + FAQs →" },
-  "Add an AI excerpt + FAQ block": { link: GEN, linkLabel: "Generate excerpt + FAQs →" },
-  "Add AI excerpt + FAQ block": { link: GEN, linkLabel: "Generate excerpt + FAQs →" },
-  "Allow AI crawlers + llms.txt": { link: GEN, linkLabel: "Generate my llms.txt →" },
-  "Publish llms.txt & allow AI bots": { link: GEN, linkLabel: "Generate my llms.txt →" },
-  "Publish /llms.txt + allow AI bots": { link: GEN, linkLabel: "Generate my llms.txt →" },
-  "Add authorship & sources": { link: GEN, linkLabel: "Open content optimizer →" },
-};
+// Legacy topActions stored before deep-links existed: the generator links are
+// gone with the optimizer (MVP cut), so old records resolve to no link rather
+// than a dead page. Only audit-internal links survive.
+const LEGACY_FIX_LINKS: Record<string, { link: string; linkLabel: string }> = {};
 
 export function fixLink(a: { title?: string; link?: string; linkLabel?: string }) {
   if (a?.link) return { link: a.link, linkLabel: a.linkLabel ?? "Fix now →" };

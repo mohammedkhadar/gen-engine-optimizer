@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 import { simulatePromptTests, competitorSet, brandStats, buildBusinessPrompts } from "@/lib/geo-engine";
 import { normalizeUrl, fetchHtml, extractText } from "@/lib/fetch-page";
 import { livePromptTest, providerStatus } from "@/lib/providers/citations";
@@ -51,10 +53,27 @@ export async function POST(req: NextRequest) {
       .map((r) => brandStats(r.name, r.domain)),
   ];
 
-  // Persist prompt runs when DB configured (best-effort).
+  // Persist prompt runs when DB configured (best-effort). The domain is
+  // created on first tracking run, so Prompt Lab works standalone — no audit
+  // required — and rows are scoped to the signed-in user like audits are.
   try {
     if (hasDatabase) {
-      const dom = await prisma.domain.findFirst({ where: { url: { contains: d } } });
+      const session = await getServerSession(authOptions).catch(() => null);
+      const ownerEmail = session?.user?.email ?? null;
+      const owner = ownerEmail
+        ? await prisma.user.findUnique({ where: { email: ownerEmail } }).catch(() => null)
+        : null;
+      const urlKey = `https://${d}/`;
+      let dom = owner
+        ? await prisma.domain.findFirst({ where: { userId: owner.id, url: urlKey } })
+        : await prisma.domain.findFirst({ where: { url: urlKey } });
+      if (!dom) {
+        dom = await prisma.domain.create({
+          data: owner
+            ? { userId: owner.id, url: urlKey, brand: b }
+            : { id: `anon-${d}`, url: urlKey, brand: b },
+        }).catch(async () => prisma.domain.findFirst({ where: { url: urlKey } }));
+      }
       if (dom) {
         for (const t of tests) {
           for (const r of t.details as any[]) {

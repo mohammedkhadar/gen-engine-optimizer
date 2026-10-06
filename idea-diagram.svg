@@ -21,8 +21,8 @@
   <!-- header -->
   <g transform="translate(80,52)">
     <rect width="56" height="56" rx="13" fill="url(#accent)"/>
-    <text x="28" y="40" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#0B0F1A">R</text>
-    <text x="70" y="40" font-family="Arial,sans-serif" font-size="30" font-weight="bold" fill="#F1F5F9">RankAI — from invisible to cited</text>
+    <text x="28" y="40" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" font-weight="bold" fill="#0B0F1A">C</text>
+    <text x="70" y="40" font-family="Arial,sans-serif" font-size="30" font-weight="bold" fill="#F1F5F9">CitedAI — from invisible to cited</text>
   </g>
 
   <!-- BEFORE panel -->
@@ -86,6 +86,6 @@
 
   <!-- footer -->
   <g>
-    <text x="80" y="842" font-family="Arial,sans-serif" font-size="24" fill="#64748B">rankai.geo — free 60-second audit, no signup</text>
+    <text x="80" y="842" font-family="Arial,sans-serif" font-size="24" fill="#64748B">cited.ai — free 60-second audit, no signup</text>
   </g>
 </svg>

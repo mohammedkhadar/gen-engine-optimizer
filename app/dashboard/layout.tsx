@@ -19,8 +19,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen">
       <aside className="hidden max-h-screen w-60 shrink-0 flex-col border-r border-white/10 bg-black/30 p-4 md:sticky md:top-0 md:flex md:h-screen">
         <Link href="/" className="flex shrink-0 items-center gap-2 px-2 py-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">R</div>
-          <span className="font-bold">RankAI <span className="text-xs font-medium text-slate-400">GEO</span></span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">C</div>
+          <span className="font-bold">CitedAI <span className="text-xs font-medium text-slate-400">GEO</span></span>
         </Link>
         <nav className="mt-4 min-h-0 flex-1 space-y-1 overflow-y-auto">
           {links.map((l) => (

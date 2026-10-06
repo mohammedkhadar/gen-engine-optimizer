@@ -9,8 +9,8 @@ export async function Nav({ ctaHref }: { ctaHref?: string }) {
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0B0F1A]/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">R</div>
-          <span className="text-lg font-bold">RankAI <span className="text-xs font-medium text-slate-400">GEO</span></span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">C</div>
+          <span className="text-lg font-bold">CitedAI <span className="text-xs font-medium text-slate-400">GEO</span></span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-slate-300 md:flex">
           <Link href="/#features" className="hover:text-white">Features</Link>

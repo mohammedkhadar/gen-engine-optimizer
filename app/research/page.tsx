@@ -115,7 +115,7 @@ export default function ResearchPage() {
         <Card className="mt-6 border-amber-500/30">
           <h3 className="font-semibold text-amber-200">Honest caveats</h3>
           <ul className="mt-2 space-y-1.5 text-sm text-slate-300">
-            <li>• The <b>grouping into six pillars and their weights</b> is RankAI&apos;s synthesis — calibrated to published effect sizes, but our judgment, not gospel.</li>
+            <li>• The <b>grouping into six pillars and their weights</b> is CitedAI&apos;s synthesis — calibrated to published effect sizes, but our judgment, not gospel.</li>
             <li>• The 2023 GEO paper tested Perplexity + GPT-4-era systems; engines evolve, and we update weights as new research lands.</li>
             <li>• Per-engine citation percentages are modeled estimates; Prompt Lab answers are measured. We label which is which everywhere.</li>
           </ul>

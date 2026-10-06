@@ -28,7 +28,7 @@ export default function OnePager() {
       `}</style>
 
       <div className="no-print mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
-        <Link href="/" className="text-sm font-semibold text-slate-600">← RankAI</Link>
+        <Link href="/" className="text-sm font-semibold text-slate-600">← CitedAI</Link>
         <button onClick={() => window.print()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
           Print / Save PDF
         </button>
@@ -39,8 +39,8 @@ export default function OnePager() {
         <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5">
           <div>
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold text-white">R</div>
-              <span className="text-2xl font-extrabold">RankAI</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold text-white">C</div>
+              <span className="text-2xl font-extrabold">CitedAI</span>
               <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">GEO PLATFORM</span>
             </div>
             <p className="mt-2 max-w-xl text-lg font-medium leading-snug">
@@ -48,7 +48,7 @@ export default function OnePager() {
             </p>
           </div>
           <div className="text-right text-xs text-slate-500">
-            <div>rankai.geo</div>
+            <div>cited.ai</div>
             <div className="mt-1">Free 60-second audit · No signup</div>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function OnePager() {
             <div className="font-bold">Dashboards don&apos;t get you cited. Fixes do.</div>
             <div className="mt-0.5 text-xs text-slate-300">Run the free audit → get your ranked fix list → become the cited answer.</div>
           </div>
-          <div className="text-right text-sm font-bold">rankai.geo/dashboard/audit</div>
+          <div className="text-right text-sm font-bold">cited.ai/dashboard/audit</div>
         </div>
       </div>
     </div>

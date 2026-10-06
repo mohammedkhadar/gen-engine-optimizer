@@ -29,7 +29,7 @@ export default function LandingPage() {
             AI recommends your competitors.<br /><span className="gradient-text">Here's exactly how to fix that.</span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-400">
-            Tracking tools show you charts of being invisible. <strong className="text-slate-200">RankAI tells you what to change:</strong> a
+            Tracking tools show you charts of being invisible. <strong className="text-slate-200">CitedAI tells you what to change:</strong> a
             live audit of your site across 6 GEO pillars, every fix ranked by impact — schema, FAQs, excerpts, llms.txt —
             then daily tracking that proves the citations climbing.
           </p>

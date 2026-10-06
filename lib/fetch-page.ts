@@ -17,7 +17,7 @@ export async function fetchHtml(url: string, timeoutMs = 9000): Promise<{ html: 
     const res = await fetch(url, {
       signal: ctrl.signal,
       headers: {
-        "User-Agent": "RankAI-GEO-Bot/1.0 (+https://rankai.geo; audits generative readiness)",
+        "User-Agent": "CitedAI-GEO-Bot/1.0 (+https://cited.ai; audits generative readiness)",
         Accept: "text/html",
       },
       redirect: "follow",

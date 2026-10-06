@@ -1,4 +1,4 @@
-# RankAI — GEO (Generative Engine Optimization) Platform
+# CitedAI — GEO (Generative Engine Optimization) Platform
 
 SaaS for businesses to get cited by ChatGPT, Perplexity, Gemini, Claude, Copilot, Grok & Google AI Overviews.
 

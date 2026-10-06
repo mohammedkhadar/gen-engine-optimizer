@@ -110,10 +110,10 @@ const SCENES: Scene[] = [
   },
   {
     id: "audit", dur: 14, kicker: "Scene 3 · Diagnose — GEO Audit",
-    title: <>RankAI audits how AI sees you.<br /><span className="gradient-text">6 pillars, 60+ checks.</span></>,
+    title: <>CitedAI audits how AI sees you.<br /><span className="gradient-text">6 pillars, 60+ checks.</span></>,
     sub: "Live fetch: schema, E-E-A-T, answer-readiness, citability…",
     visual: <ScoreDemo />,
-    narration: "RankAI fetches your site live and scores it the way AI engines do: structured data, authority signals, and whether your content is written in quotable, answer-ready form. One number, with every fix ranked by impact.",
+    narration: "CitedAI fetches your site live and scores it the way AI engines do: structured data, authority signals, and whether your content is written in quotable, answer-ready form. One number, with every fix ranked by impact.",
   },
   {
     id: "track", dur: 14, kicker: "Scene 4 · Track — Prompt Lab",
@@ -127,7 +127,7 @@ const SCENES: Scene[] = [
     title: <>Apply the fixes that<br /><span className="gradient-text">earn citations.</span></>,
     sub: "FAQ schema, AI excerpts, llms.txt — copy-paste ready.",
     visual: <FixesDemo />,
-    narration: "Now fix it: add the schema bundle AI crawlers look for, lead every page with a quotable answer block, and publish an llms.txt file. RankAI generates all three for you — copy, paste, done.",
+    narration: "Now fix it: add the schema bundle AI crawlers look for, lead every page with a quotable answer block, and publish an llms.txt file. CitedAI generates all three for you — copy, paste, done.",
   },
   {
     id: "outcome", dur: 12, kicker: "Scene 6 · The outcome",
@@ -140,14 +140,14 @@ const SCENES: Scene[] = [
     narration: "Ninety days later, the same buyer asks the same question — and now your pages are the cited sources. That's Generative Engine Optimization: from invisible, to mentioned, to cited.",
   },
   {
-    id: "cta", dur: 10, kicker: "RankAI GEO",
+    id: "cta", dur: 10, kicker: "CitedAI GEO",
     title: <><span className="gradient-text">Get cited by AI answers.</span></>,
     sub: "Free 60-second AI visibility audit. No credit card.",
     visual: (
       <div className="mx-auto max-w-md rounded-2xl border border-violet-500/40 bg-gradient-to-br from-violet-600/30 to-emerald-600/20 p-8 text-center">
-        <div className="text-5xl font-extrabold">R</div>
-        <div className="mt-2 text-2xl font-bold">RankAI</div>
-        <div className="mt-1 text-sm text-slate-300">rankai.geo/dashboard/audit</div>
+        <div className="text-5xl font-extrabold">C</div>
+        <div className="mt-2 text-2xl font-bold">CitedAI</div>
+        <div className="mt-1 text-sm text-slate-300">cited.ai/dashboard/audit</div>
       </div>
     ),
     narration: "Run your free AI visibility audit today, and see exactly how ChatGPT, Perplexity and Gemini see your business.",
@@ -349,7 +349,7 @@ export default function VideoPage() {
       localFirst[0] ??
       null;
     try {
-      (window as any).__rankaiVoice = pick ? `${pick.name} (local=${pick.localService})` : "none";
+      (window as any).__citedaiVoice = pick ? `${pick.name} (local=${pick.localService})` : "none";
     } catch {}
     speakingRef.current = true;
     let released = false;
@@ -496,7 +496,7 @@ export default function VideoPage() {
         `scene=${idxRef.current} wall=${wallRef.current.toFixed(0)} frozen=${speakingRef.current} ` +
         `synth.speaking=${s?.speaking} pending=${s?.pending} ` +
         `boundaryAge=${boundaryRef.current ? ((Date.now() - boundaryRef.current) / 1000).toFixed(1) + "s" : "never"} ` +
-        `voices=${voices.length} ready=${voicesReady} voice=${(window as any).__rankaiVoice ?? "?"}`
+        `voices=${voices.length} ready=${voicesReady} voice=${(window as any).__citedaiVoice ?? "?"}`
       );
     }, 500);
     return () => clearInterval(id);
@@ -527,8 +527,8 @@ export default function VideoPage() {
 
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">R</div>
-          <span className="font-bold">RankAI <span className="text-xs font-medium text-slate-400">explainer · {Math.round(TOTAL)}s</span></span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">C</div>
+          <span className="font-bold">CitedAI <span className="text-xs font-medium text-slate-400">explainer · {Math.round(TOTAL)}s</span></span>
         </Link>
         <Link href="/dashboard" className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black">Open the app</Link>
       </header>

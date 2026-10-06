@@ -13,7 +13,7 @@ type Slide = {
 
 const SLIDES: Slide[] = [
   {
-    kicker: "RankAI · Generative Engine Optimization",
+    kicker: "CitedAI · Generative Engine Optimization",
     title: "AI recommends your competitors. Here's exactly how to fix that.",
     points: ["58% of product searches end in an AI answer", "Only ~3 brands cited per answer", "Free 60-second audit — no signup"],
     visual: "title",
@@ -38,7 +38,7 @@ const SLIDES: Slide[] = [
     title: "One score, six pillars, every fix ranked.",
     points: ["Live fetch: schema, E-E-A-T, answer-readiness + 60 checks", "Per-engine citation likelihood (7 engines)", "Fixes ordered by point impact, deep-linked to generators"],
     visual: "score",
-    notes: "RankAI fetches your site live and scores it the way AI engines do. One number, with every fix ranked by impact.",
+    notes: "CitedAI fetches your site live and scores it the way AI engines do. One number, with every fix ranked by impact.",
   },
   {
     kicker: "Scene 4 · Track — Prompt Lab",
@@ -62,9 +62,9 @@ const SLIDES: Slide[] = [
     notes: "Ninety days later the same buyer asks the same question — and your pages are the cited sources.",
   },
   {
-    kicker: "RankAI GEO",
+    kicker: "CitedAI GEO",
     title: "Dashboards don't get you cited. Fixes do.",
-    points: ["Starter $29 · Growth $79 · Scale/Agency $199", "Free audit forever · white-label reports for agencies", "rankai.geo/dashboard/audit"],
+    points: ["Starter $29 · Growth $79 · Scale/Agency $199", "Free audit forever · white-label reports for agencies", "cited.ai/dashboard/audit"],
     visual: "cta",
     notes: "Run your free AI visibility audit today, and see exactly how ChatGPT, Perplexity and Gemini see your business.",
   },
@@ -74,7 +74,7 @@ function Visual({ kind }: { kind: Slide["visual"] }) {
   const box = "mx-auto flex h-56 w-full max-w-md flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/50 p-6 text-center";
   switch (kind) {
     case "title":
-      return <div className={box}><div className="text-7xl font-extrabold">R</div><div className="mt-2 text-xl font-bold">RankAI</div></div>;
+      return <div className={box}><div className="text-7xl font-extrabold">C</div><div className="mt-2 text-xl font-bold">CitedAI</div></div>;
     case "chat-bad":
       return <div className={box}><div className="mb-2 rounded-xl bg-violet-600/30 px-4 py-2 text-sm">“Best CRM for startups?”</div><div className="rounded-xl bg-white/5 px-4 py-2 text-sm text-slate-300">Try <b>Competitor A</b> — sources: g2.com · reddit.com</div></div>;
     case "chat-wrong":
@@ -88,7 +88,7 @@ function Visual({ kind }: { kind: Slide["visual"] }) {
     case "chat-good":
       return <div className={box}><div className="mb-2 rounded-xl bg-violet-600/30 px-4 py-2 text-sm">“Best CRM for startups?”</div><div className="rounded-xl bg-emerald-500/10 px-4 py-2 text-sm text-slate-200">Top pick: <b>Acme</b> — sources: acme.com/pricing</div></div>;
     case "cta":
-      return <div className={box}><div className="text-2xl font-bold">Get my fix list — free →</div><div className="mt-2 text-sm text-slate-400">rankai.geo/dashboard/audit</div></div>;
+      return <div className={box}><div className="text-2xl font-bold">Get my fix list — free →</div><div className="mt-2 text-sm text-slate-400">cited.ai/dashboard/audit</div></div>;
   }
 }
 
@@ -114,8 +114,8 @@ export default function DeckPage() {
       <style>{`@media print { .no-print { display: none !important; } }`}</style>
       <header className="no-print mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">R</div>
-          <span className="font-bold">RankAI <span className="text-xs font-medium text-slate-400">pitch deck · {i + 1}/{n}</span></span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-500 font-bold">C</div>
+          <span className="font-bold">CitedAI <span className="text-xs font-medium text-slate-400">pitch deck · {i + 1}/{n}</span></span>
         </Link>
         <div className="flex gap-2">
           <button onClick={() => setNotes(!notes)} className="flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs hover:bg-white/5">

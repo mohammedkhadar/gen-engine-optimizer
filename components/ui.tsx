@@ -87,7 +87,7 @@ export function Footer() {
   return (
     <footer className="border-t border-white/10 py-10">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 text-sm text-slate-400 sm:flex-row">
-        <div>© 2026 RankAI GEO Platform. Built for the AI-search era.</div>
+        <div>© 2026 CitedAI GEO Platform. Built for the AI-search era.</div>
         <div className="flex gap-5">
           <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
           <Link href="/dashboard/audit" className="hover:text-white">Audit</Link>

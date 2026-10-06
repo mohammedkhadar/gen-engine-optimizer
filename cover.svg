@@ -39,8 +39,8 @@
   <!-- logo -->
   <g transform="translate(120,110)">
     <rect width="64" height="64" rx="14" fill="url(#accent)"/>
-    <text x="32" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#0B0F1A">R</text>
-    <text x="80" y="44" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#F1F5F9">RankAI</text>
+    <text x="32" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#0B0F1A">C</text>
+    <text x="80" y="44" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#F1F5F9">CitedAI</text>
   </g>
 
   <!-- headline -->
@@ -65,5 +65,5 @@
   <!-- footer -->
   <text x="120" y="810" font-family="Arial, sans-serif" font-size="24" fill="#64748B">Audit → Track → Fix → Get cited</text>
   <rect x="1180" y="770" width="300" height="56" rx="14" fill="#F8FAFC"/>
-  <text x="1330" y="806" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#0B0F1A">rankai.geo — free audit</text>
+  <text x="1330" y="806" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#0B0F1A">cited.ai — free audit</text>
 </svg>

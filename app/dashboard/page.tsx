@@ -8,17 +8,6 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, Radar as ReRadar,
 } from "recharts";
 
-const visibilityTrend = [
-  { d: "Sep 26", you: 42, comp: 55 }, { d: "Sep 28", you: 48, comp: 57 },
-  { d: "Sep 30", you: 51, comp: 60 }, { d: "Oct 1", you: 57, comp: 62 },
-  { d: "Oct 2", you: 63, comp: 64 },
-];
-const engineShare = [
-  { engine: "ChatGPT", you: 68, avg: 55 }, { engine: "Perplexity", you: 74, avg: 60 },
-  { engine: "Gemini", you: 59, avg: 58 }, { engine: "Claude", you: 52, avg: 50 },
-  { engine: "Copilot", you: 61, avg: 53 },
-];
-
 const PILLAR_INFO: Record<string, { full: string; what: string; fix: string }> = {
   "Crawlability": { full: "Crawlability & Technical (15%)", what: "Can AI bots reach, load and render your pages? Title tags, meta descriptions, speed, and AI crawlers allowed in robots.txt.", fix: "Allow GPTBot/PerplexityBot/ClaudeBot, keep TTFB < 800ms, no JS-only content." },
   "Structured": { full: "Structured Data & Machine Readability (20%)", what: "Machine-readable facts via JSON-LD (Organization, FAQPage, Article). Lets engines parse with certainty instead of guessing.", fix: "Add the schema bundle — highest-leverage fix (+12–18 pts)." },
@@ -49,22 +38,30 @@ const DEFAULT_CATS = [
 export default function DashboardOverview() {
   const [audit, setAudit] = useState<any>(null);
   const [ready, setReady] = useState(false);
+  const [m, setM] = useState<any>(null);
   useEffect(() => {
     // Per-account restore: browser cache first, then this account's server history.
     loadCachedAudit().then((data) => {
-      if (data?.url) { setAudit(data); setReady(true); return; }
-      fetch("/api/history")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          const latest = d?.audits?.[0];
-          if (latest?.url) {
-            setAudit(latest);
-            saveCachedAudit(latest);
-          }
-        })
-        .catch(() => {})
-        .finally(() => setReady(true));
+      if (data?.url) { setAudit(data); setReady(true); }
+      else {
+        fetch("/api/history")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            const latest = d?.audits?.[0];
+            if (latest?.url) {
+              setAudit(latest);
+              saveCachedAudit(latest);
+            }
+          })
+          .catch(() => {})
+          .finally(() => setReady(true));
+      }
     });
+    // Live tracking metrics for this account (zeros when never tracked).
+    fetch("/api/metrics")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && !d.error) setM(d); })
+      .catch(() => {});
   }, []);
 
   const cats: { label: string; score: number }[] = audit?.categories ?? DEFAULT_CATS;
@@ -123,11 +120,12 @@ export default function DashboardOverview() {
           const tone = score == null ? "none" : score >= 75 ? "emerald" : score >= 55 ? "amber" : "red";
           const text = tone === "emerald" ? "text-emerald-300" : tone === "amber" ? "text-amber-300" : tone === "red" ? "text-red-300" : "text-slate-500";
           const ring = tone === "emerald" ? "border-emerald-500/40 bg-emerald-500/[0.07]" : tone === "amber" ? "border-amber-500/40 bg-amber-500/[0.07]" : tone === "red" ? "border-red-500/40 bg-red-500/[0.07]" : "";
+          const tracked = m && !m.empty;
           const items = [
             { l: "GEO Visibility Score", v: score ?? "—", d: hasData ? "+6 this week" : "No audit yet", hot: true },
-            { l: "AI Mentions (7d)", v: hasData ? "1,284" : "—", d: hasData ? "+12.4%" : "No data yet" },
-            { l: "Citation Rate", v: hasData ? "61%" : "—", d: hasData ? "+4 pts" : "No data yet" },
-            { l: "Prompts Won", v: hasData ? "38/52" : "—", d: hasData ? "73% win rate" : "No data yet" },
+            { l: "AI Mentions (7d)", v: tracked ? m.mentions7d.toLocaleString() : "—", d: tracked ? `${m.mentionsDelta >= 0 ? "+" : ""}${m.mentionsDelta} vs prior week` : "No tracking yet" },
+            { l: "Citation Rate", v: tracked ? `${m.citationRate}%` : "—", d: tracked ? "of tracked answers" : "No tracking yet" },
+            { l: "Prompts Won", v: tracked ? `${m.promptsWon}/${m.promptsTotal}` : "—", d: tracked ? "≥3 engines citing" : "No tracking yet" },
           ];
           return items.map((s) => (
             <Card key={s.l} className={s.hot ? ring : ""}>
@@ -177,22 +175,21 @@ export default function DashboardOverview() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">Visibility trend — you vs top competitor</h3>
-            <Badge tone="green">Live</Badge>
+            <h3 className="font-semibold">AI mentions per day — last 14 days</h3>
+            {m && !m.empty ? <Badge tone="green">Live</Badge> : <Badge tone="slate">No data</Badge>}
           </div>
           <div className="mt-4 h-64">
-            {hasData ? (
+            {m && !m.empty ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={visibilityTrend}>
+              <LineChart data={m.trend}>
                 <XAxis dataKey="d" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} />
+                <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
                 <Tooltip contentStyle={{ background: "#111726", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }} />
-                <Line type="monotone" dataKey="you" stroke="#8b5cf6" strokeWidth={3} dot={false} />
-                <Line type="monotone" dataKey="comp" stroke="#64748b" strokeWidth={2} strokeDasharray="6 4" dot={false} />
+                <Line type="monotone" dataKey="you" name="Mentions" stroke="#8b5cf6" strokeWidth={3} dot={false} />
               </LineChart>
             </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-slate-500">No tracking data yet — run an audit to start building your trend.</div>
+              <div className="flex h-full items-center justify-center text-sm text-slate-500">No tracking data yet — run Prompt Lab to start building your trend.</div>
             )}
           </div>
         </Card>
@@ -218,16 +215,15 @@ export default function DashboardOverview() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <h3 className="font-semibold">Visibility by AI engine</h3>
+          <h3 className="font-semibold">Mention rate by AI engine (7d)</h3>
           <div className="mt-4 h-64">
-            {hasData ? (
+            {m && !m.empty ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={engineShare} layout="vertical">
-                <XAxis type="number" hide />
+              <BarChart data={m.engines} layout="vertical">
+                <XAxis type="number" hide domain={[0, 100]} />
                 <YAxis dataKey="engine" type="category" stroke="#cbd5e1" fontSize={12} width={90} />
                 <Tooltip contentStyle={{ background: "#111726", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12 }} />
-                <Bar dataKey="you" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
-                <Bar dataKey="avg" fill="#334155" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="you" name="Mention %" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
             ) : (
@@ -259,16 +255,12 @@ export default function DashboardOverview() {
 
       <Card>
         <div className="flex items-center gap-2 font-semibold"><Bell size={16} /> Recent AI citations</div>
-        {hasData ? (
+        {m && !m.empty && m.feed.length ? (
         <div className="mt-3 space-y-2 text-sm">
-          {[
-            ["Perplexity cited your pricing page for “acme vs competitor pricing”", "2h ago", "green"],
-            ["ChatGPT mentioned Competitor A instead of you for “best CRM for startups”", "6h ago", "amber"],
-            ["Google AI Overview quoted your FAQ: “How much does implementation cost?”", "1d ago", "green"],
-          ].map(([t, when, tone]) => (
-            <div key={t as string} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-4 py-3">
-              <span className="text-slate-300">{t}</span>
-              <Badge tone={tone as any}>{when as string}</Badge>
+          {m.feed.map((f: any, i: number) => (
+            <div key={i} className="flex items-center justify-between gap-3 rounded-xl bg-white/[0.03] px-4 py-3">
+              <span className="text-slate-300">{f.text}</span>
+              <Badge tone={f.sentiment === "negative" ? "red" : "green"}>{f.when}</Badge>
             </div>
           ))}
         </div>

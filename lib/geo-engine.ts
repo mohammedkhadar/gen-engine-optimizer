@@ -52,9 +52,14 @@ function clamp(n: number, min = 0, max = 100) {
 
 // Lightweight HTML signal extraction (no deps). Word count comes from the
 // shared content pipeline (fetch-page), so the audit and the optimizer
-// always agree on how much readable text a page has.
+// always agree on how much readable text a page has. All signal checks run on
+// script/style-stripped HTML — inline JS otherwise fakes signals ("n=",
+// "review", "author" inside minified code).
 export function extractSignals(html: string) {
-  const lower = html.toLowerCase();
+  const stripped = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ");
+  const lower = stripped.toLowerCase();
   const title = /<title[^>]*>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() ?? "";
   const desc =
     /<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i.exec(html)?.[1] ??
@@ -70,7 +75,7 @@ export function extractSignals(html: string) {
   const hrefs: string[] = [];
   const hrefRe = /<a[^>]+href=["']([^"']+)["']/gi;
   let hm: RegExpExecArray | null;
-  while ((hm = hrefRe.exec(html)) !== null && hrefs.length < 300) hrefs.push(hm[1]);
+  while ((hm = hrefRe.exec(stripped)) !== null && hrefs.length < 300) hrefs.push(hm[1]);
   const pathOf = (h: string) => {
     try {
       return new URL(h, "https://x.test").pathname.toLowerCase();
@@ -126,7 +131,7 @@ export function extractSignals(html: string) {
     hasTables: has("<table"),
     hasLists: has("<ul") || has("<ol"),
     hasQA: has("?") && headings >= 2,
-    hasStats: /\d+\s?%|\$\d+|\d{4}/.test(text),
+    hasStats: /\d+\s?%|\$\d+/.test(text),
     hasQuotes: has("<blockquote"),
     length: html.length,
     canonical,
@@ -229,6 +234,8 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
   if (s.canonical) crawl += 3;
   if (site?.sitemapOk) crawl += 3;
   if (blockedBots.length === 0 && site?.robots) crawl += 4;
+  // Blocking AI crawlers defeats the entire exercise: -8 per blocked bot.
+  if (blockedBots.length) crawl -= 8 * blockedBots.length;
   if (s.hasSchema) crawl += 10;
   if (site?.llmsOk) crawl += 3;
   if (s.hasOG) crawl += 2;

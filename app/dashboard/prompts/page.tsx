@@ -99,9 +99,11 @@ export default function PromptsPage() {
       const saved = loadResults(t);
       const auditHost = hostOf(audit?.url);
       const targetHost = hostOf(t.domain);
+      // New audit host = new site: the tracked brand can't be assumed to
+      // still apply, whether or not saved results exist. Same host: keep it.
+      const siteChanged = !!(auditHost && targetHost && targetHost !== auditHost);
       const stampedMismatch = !!(saved && saved.auditUrl && audit?.url && saved.auditUrl !== audit.url);
-      const hostMismatch = !!(saved && auditHost && targetHost && targetHost !== auditHost);
-      if (saved && (stampedMismatch || hostMismatch)) {
+      if (saved && (stampedMismatch || siteChanged)) {
         try {
           const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
           delete all[`${t.brand.toLowerCase()}|${t.domain.toLowerCase()}`];
@@ -109,8 +111,6 @@ export default function PromptsPage() {
         } catch {}
         // New site: clear stale numbers and open setup for it. Idempotent:
         // a repeat pass (StrictMode double-effect) re-derives the same state.
-        // The old brand is NOT carried over — a new audit host means the
-        // tracked brand can't be assumed to still apply.
         setTests([]);
         setSource(null);
         setTarget(t);
@@ -124,8 +124,9 @@ export default function PromptsPage() {
         return;
       }
       // No saved results at all (never ran, failed run, cleared state):
-      // open setup rather than stranding on an empty page.
-      startFreshSetup(t, audit);
+      // open setup rather than stranding on an empty page. Reset the brand
+      // too when the audit points at a different site than the tracked one.
+      startFreshSetup(t, audit, siteChanged);
     });
     };
     check();

@@ -296,7 +296,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
         : s.vertical === "accounting"
           ? "GDPR-first accounting for 2–10-person firms with DATEV integration"
           : s.vertical === "commerce"
-            ? "Checkout for single-product EU stores needing Klarna and VAT handling"
+            ? "Online store for a defined audience and region, with its deciding constraint named"
             : "CRM for 5–25-person German recruitment agencies needing EU hosting";
   const nicheScore = 30 + Math.min(4, s.nicheDims) * 12 + (s.hasNiche ? 8 : 0);
   const nicheCat = mk(

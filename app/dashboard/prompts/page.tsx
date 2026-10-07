@@ -72,7 +72,10 @@ export default function PromptsPage() {
     }
   };
   useEffect(() => {
+    let cancelled = false;
+    const check = () => {
     loadCachedAudit().then((audit) => {
+      if (cancelled) return;
       const t = loadTarget();
       if (!t) {
         if (audit?.url) {
@@ -95,6 +98,8 @@ export default function PromptsPage() {
         } catch {}
         // New site: prefill the dialog from the audit and open it so fresh
         // prompts get suggested immediately instead of stranding the user.
+        setTests([]);
+        setSource(null);
         setTarget(t);
         if (audit?.url) {
           setDUrl(audit.url);
@@ -113,6 +118,15 @@ export default function PromptsPage() {
         setSource(saved.source);
       }
     });
+    };
+    check();
+    // Re-check on window focus: catches audit changes made while this page
+    // stayed mounted in the background.
+    window.addEventListener("focus", check);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", check);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

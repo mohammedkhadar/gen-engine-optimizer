@@ -308,7 +308,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
       `Niche dimensions detected: ${s.nicheDims}/4 (customer, geography, company size, deciding constraint)`,
       s.nicheDims >= 3
         ? "Strong wedge — answer engines have a defensible reason to include this brand"
-        : `Weak or missing wedge — new brands win narrow buying situations first, e.g. '${wedgeExample}'`,
+        : `No clear niche found — say exactly who this is for, e.g. '${wedgeExample}'`,
       "Generic 'best category' visibility comes later; own one shortlist first",
     ],
     [

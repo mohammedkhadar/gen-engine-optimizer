@@ -4,12 +4,14 @@
 
 import { extractContentLines } from "./fetch-page";
 
+export type Finding = { t: string; ok: boolean | null };
+
 export type AuditCategory = {
   key: string;
   label: string;
   score: number; // 0-100
   weight: number;
-  findings: string[];
+  findings: Finding[];
   fixes: string[];
 };
 
@@ -221,7 +223,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     label: string,
     score: number,
     weight: number,
-    findings: string[],
+    findings: Finding[],
     fixes: string[]
   ): AuditCategory => ({ key, label, score: clamp(score), weight, findings, fixes });
 
@@ -254,27 +256,31 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
   if (s.hasSchema) crawl += 10;
   if (site?.llmsOk) crawl += 3;
   if (s.hasOG) crawl += 2;
+  // Finding helper: every finding carries its pass/fail state so the UI can
+  // render ✓/✕ instead of plain bullets. ok=null = neutral info, no mark.
+  const F = (t: string, ok: boolean | null = null): Finding => ({ t, ok });
+
   const discoverCat = mk(
     "discover",
     "Discoverability",
     crawl + rand("c") * 6 - 3,
     0.25,
     [
-      fetched ? `Page fetched successfully (${(s.length / 1024).toFixed(1)} KB in ${loadMs}ms)` : "Could not fetch page — score estimated from domain signals",
-      s.title ? `Title tag present: "${s.title.slice(0, 70)}"` : "Missing or empty <title> — AI engines use this as citation label",
-      s.description ? "Meta description present" : "Missing meta description — hurts click-through from AI answers",
-      loadMs < 2000 ? `Fast response (${loadMs}ms)` : `Slow response (${loadMs}ms) — crawlers may truncate`,
-      s.canonical ? `Canonical URL set: ${s.canonical.slice(0, 80)}` : "No canonical link — generative features need unambiguous canonicals",
-      site?.sitemapOk ? "XML sitemap reachable — use IndexNow/Bing Webmaster for fast re-discovery" : "No XML sitemap found at /sitemap.xml — crawlers discover changes slower",
-      site?.robots
+      F(fetched ? `Page fetched successfully (${(s.length / 1024).toFixed(1)} KB in ${loadMs}ms)` : "Could not fetch page — score estimated from domain signals", fetched),
+      F(s.title ? `Title tag present: "${s.title.slice(0, 70)}"` : "Missing or empty <title> — AI engines use this as citation label", !!s.title),
+      F(s.description ? "Meta description present" : "Missing meta description — hurts click-through from AI answers", !!s.description),
+      F(loadMs < 2000 ? `Fast response (${loadMs}ms)` : `Slow response (${loadMs}ms) — crawlers may truncate`, loadMs < 2000),
+      F(s.canonical ? `Canonical URL set: ${s.canonical.slice(0, 80)}` : "No canonical link — generative features need unambiguous canonicals", !!s.canonical),
+      F(site?.sitemapOk ? "XML sitemap reachable — use IndexNow/Bing Webmaster for fast re-discovery" : "No XML sitemap found at /sitemap.xml — crawlers discover changes slower", !!site?.sitemapOk),
+      F(site?.robots
         ? blockedBots.length
           ? `robots.txt blocks AI crawlers: ${blockedBots.join(", ")} — ChatGPT search needs OAI-SearchBot allowed (separate from GPTBot)`
           : `robots.txt allows AI crawlers${allowedBots.length ? ` (${allowedBots.join(", ")})` : ""}`
-        : "Could not read robots.txt — verify AI crawlers (GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot) are allowed",
-      s.hasSchema ? "JSON-LD schema detected (Organization/WebSite/FAQPage expected)" : "No JSON-LD schema — mark up accurately; it aids extraction (note: Google needs no special AI markup beyond indexability)",
-      site?.llmsOk
+        : "Could not read robots.txt — verify AI crawlers (GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot) are allowed", !!site?.robots && blockedBots.length === 0),
+      F(s.hasSchema ? "JSON-LD schema detected (Organization/WebSite/FAQPage expected)" : "No JSON-LD schema — mark up accurately; it aids extraction (note: Google needs no special AI markup beyond indexability)", s.hasSchema),
+      F(site?.llmsOk
         ? "llms.txt present — assistant crawlers can use it (Google ignores it; indexability is what matters there)"
-        : "No llms.txt found — publish one for ChatGPT/Perplexity assistants (Google explicitly doesn't need it)",
+        : "No llms.txt found — publish one for ChatGPT/Perplexity assistants (Google explicitly doesn't need it)", !!site?.llmsOk),
     ],
     [
       "Add clean <title> (50–60 chars) + meta description (140–160 chars) on every key page",
@@ -305,11 +311,11 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     nicheScore + rand("n") * 6 - 3,
     0.15,
     [
-      `Niche dimensions detected: ${s.nicheDims}/4 (customer, geography, company size, deciding constraint)`,
-      s.nicheDims >= 3
+      F(`Niche dimensions detected: ${s.nicheDims}/4 (customer, geography, company size, deciding constraint)`, s.nicheDims >= 3),
+      F(s.nicheDims >= 3
         ? "Strong wedge — answer engines have a defensible reason to include this brand"
-        : `No clear niche found — say exactly who this is for, e.g. '${wedgeExample}'`,
-      "Generic 'best category' visibility comes later; own one shortlist first",
+        : `No clear niche found — say exactly who this is for, e.g. '${wedgeExample}'`, s.nicheDims >= 3),
+      F("Generic 'best category' visibility comes later; own one shortlist first"),
     ],
     [
       "Define the 4 dimensions explicitly on a category page: who it serves, where, what size, and the deciding constraint (EU hosting, WhatsApp, Outlook/DATEV…)",
@@ -336,21 +342,21 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     evidence + rand("e") * 6 - 3,
     0.25,
     [
-      `Selection pages detected: ${pageHits}/4 (pricing, comparison, security, integrations)`,
-      ...(s.pricingUrl ? [`Pricing page linked: ${s.pricingUrl}`] : ["No pricing page linked — publish exact prices, limits, commitments"]),
-      ...(s.compareUrl ? [`Comparison page linked: ${s.compareUrl}`] : ["No comparison page linked — publish honest vs/migration pages with measurable distinctions"]),
-      s.hasSecurity ? "Security/compliance signals detected (GDPR, SOC 2, residency)" : "No security/compliance content — 'Is it GDPR compliant?' and 'where is data hosted?' go unanswered",
-      s.hasIntegration ? "Integration content detected" : "No integration content — 'does it integrate with X?' unanswered",
-      s.hasFAQ ? "FAQ structure detected" : "No FAQ structure — FAQs are the #1 citation source for AI answers",
-      s.hasTables || s.hasLists ? "Tables/lists detected (evidence engines extract)" : "No tables/lists — add evidence and comparison tables",
-      s.headings >= 4 ? `${s.headings} headings — decent question coverage` : `Only ${s.headings} headings — add question-style H2s (What / How much / Vs / Best / How to)`,
-      s.hasDates ? "Publish/update dates detected" : "No visible publish or last-updated dates",
-      s.hasAuthor ? "Author/byline signals found" : "No author attribution — anonymous claims get discounted",
-      s.hasCorrections ? "Corrections/media contact present" : "No corrections contact — add one so claims stay trustworthy",
-      s.hasVersionHistory ? "Version/changelog history detected" : "No version history — publish a changelog so updates are verifiable",
-      s.wordCount > 300 ? `${s.wordCount.toLocaleString()} words of extractable text` : s.wordCount < 50 && fetched
+      F(`Selection pages detected: ${pageHits}/4 (pricing, comparison, security, integrations)`, pageHits >= 3),
+      ...(s.pricingUrl ? [F(`Pricing page linked: ${s.pricingUrl}`, true)] : [F("No pricing page linked — publish exact prices, limits, commitments", false)]),
+      ...(s.compareUrl ? [F(`Comparison page linked: ${s.compareUrl}`, true)] : [F("No comparison page linked — publish honest vs/migration pages with measurable distinctions", false)]),
+      F(s.hasSecurity ? "Security/compliance signals detected (GDPR, SOC 2, residency)" : "No security/compliance content — 'Is it GDPR compliant?' and 'where is data hosted?' go unanswered", s.hasSecurity),
+      F(s.hasIntegration ? "Integration content detected" : "No integration content — 'does it integrate with X?' unanswered", s.hasIntegration),
+      F(s.hasFAQ ? "FAQ structure detected" : "No FAQ structure — FAQs are the #1 citation source for AI answers", s.hasFAQ),
+      F(s.hasTables || s.hasLists ? "Tables/lists detected (evidence engines extract)" : "No tables/lists — add evidence and comparison tables", s.hasTables || s.hasLists),
+      F(s.headings >= 4 ? `${s.headings} headings — decent question coverage` : `Only ${s.headings} headings — add question-style H2s (What / How much / Vs / Best / How to)`, s.headings >= 4),
+      F(s.hasDates ? "Publish/update dates detected" : "No visible publish or last-updated dates", s.hasDates),
+      F(s.hasAuthor ? "Author/byline signals found" : "No author attribution — anonymous claims get discounted", s.hasAuthor),
+      F(s.hasCorrections ? "Corrections/media contact present" : "No corrections contact — add one so claims stay trustworthy", s.hasCorrections),
+      F(s.hasVersionHistory ? "Version/changelog history detected" : "No version history — publish a changelog so updates are verifiable", s.hasVersionHistory),
+      F(s.wordCount > 300 ? `${s.wordCount.toLocaleString()} words of extractable text` : s.wordCount < 50 && fetched
         ? `Only ${s.wordCount} readable words — likely a login wall, JS-only app, or portal-style homepage with no content (e.g. google.com). Audit a content-rich inner page instead; this score doesn't reflect one.`
-        : `Only ${s.wordCount} words — thin content rarely cited`,
+        : `Only ${s.wordCount} words — thin content rarely cited`, s.wordCount > 300),
     ],
     [
       "Publish the selection set first: /pricing, /security, /compare/X, /integrations/X, /migration/X, /customers/X, /research/X, /facts",
@@ -374,12 +380,12 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     facts + rand("f2") * 6 - 3,
     0.2,
     [
-      s.hasStats ? "Quantified claims found" : "Few quantified claims — 'dramatically improves productivity' is not citable",
-      s.hasMethodology ? "Methodology/sample-size language detected — benchmarks look citable" : "No methodology or sample-size language — name how numbers were produced",
-      s.hasQuotes ? "Quotable blocks found" : "No blockquotes / expert quotes",
-      s.links >= 3 ? `${s.links} outbound links — claims can be traced` : "Few outbound links — cite primary sources (.edu, docs, research)",
-      s.hasDownloadable ? "Downloadable data/report detected" : "No downloadable aggregate data — publish the dataset behind benchmarks",
-      s.hasLimitations ? "Limitations/caveats disclosed — far more credible than winner-declaring" : "No limitations disclosed — say where competitors are stronger",
+      F(s.hasStats ? "Quantified claims found" : "Few quantified claims — 'dramatically improves productivity' is not citable", s.hasStats),
+      F(s.hasMethodology ? "Methodology/sample-size language detected — benchmarks look citable" : "No methodology or sample-size language — name how numbers were produced", s.hasMethodology),
+      F(s.hasQuotes ? "Quotable blocks found" : "No blockquotes / expert quotes", s.hasQuotes),
+      F(s.links >= 3 ? `${s.links} outbound links — claims can be traced` : "Few outbound links — cite primary sources (.edu, docs, research)", s.links >= 3),
+      F(s.hasDownloadable ? "Downloadable data/report detected" : "No downloadable aggregate data — publish the dataset behind benchmarks", s.hasDownloadable),
+      F(s.hasLimitations ? "Limitations/caveats disclosed — far more credible than winner-declaring" : "No limitations disclosed — say where competitors are stronger", s.hasLimitations),
     ],
     [
       "Replace adjectives with named, quantified studies: sample, calculation, exclusions, dates",
@@ -398,9 +404,9 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     corroboration,
     0.15,
     [
-      s.hasEvidence ? "Customer-proof signals present (cases, reviews, ratings)" : "No customer-proof signals on this page — reviewers need product access, data, and limitations to cite you",
-      "Backlink velocity & review volume estimated from domain age heuristics",
-      "Brand mention frequency across simulated AI corpora: " + (seed % 3 === 0 ? "low" : seed % 3 === 1 ? "moderate" : "emerging"),
+      F(s.hasEvidence ? "Customer-proof signals present (cases, reviews, ratings)" : "No customer-proof signals on this page — reviewers need product access, data, and limitations to cite you", s.hasEvidence),
+      F("Backlink velocity & review volume estimated from domain age heuristics"),
+      F("Brand mention frequency across simulated AI corpora: " + (seed % 3 === 0 ? "low" : seed % 3 === 1 ? "moderate" : "emerging")),
     ],
     [
       "Earn legitimate third-party validation: genuine customer reviews, integration marketplace listings, co-published cases, niche reviewers, associations, directories, podcasts",

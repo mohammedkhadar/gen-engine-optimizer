@@ -124,7 +124,22 @@ function AuditInner() {
                 </div>
                 <Progress value={c.score} className="mt-2" />
                 <ul className="mt-3 space-y-1.5 text-sm text-slate-300">
-                  {c.findings.map((f: string, i: number) => <li key={i} className="flex gap-2"><span className="text-slate-500">•</span>{f}</li>)}
+                  {(c.findings as any[]).map((f: any, i: number) => {
+                    const t = typeof f === "string" ? f : f.t;
+                    const ok = typeof f === "string" ? null : (f.ok ?? null);
+                    return (
+                      <li key={i} className="flex gap-2">
+                        {ok === true ? (
+                          <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-400" />
+                        ) : ok === false ? (
+                          <XCircle size={16} className="mt-0.5 shrink-0 text-red-400" />
+                        ) : (
+                          <span className="text-slate-500">•</span>
+                        )}
+                        <span>{t}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <div className="mt-3 rounded-xl bg-black/30 p-3">
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-300"><Wrench size={13} /> FIXES</div>

@@ -15,20 +15,22 @@ export async function POST(req: NextRequest) {
     const [{ html, loadMs }, site] = await Promise.all([
       fetchHtml(url),
       // Site-level tech: robots.txt (AI crawler permissions incl.
-      // OAI-SearchBot) + sitemap reachability. Best-effort, never fatal.
+      // OAI-SearchBot), sitemap + llms.txt reachability. Best-effort, never fatal.
       (async () => {
         try {
-          const [robotsRes, sitemapRes] = await Promise.all([
+          const [robotsRes, sitemapRes, llmsRes] = await Promise.all([
             fetch(origin + "/robots.txt", { signal: AbortSignal.timeout(6000) }).catch(() => null),
             fetch(origin + "/sitemap.xml", { signal: AbortSignal.timeout(6000) }).catch(() => null),
+            fetch(origin + "/llms.txt", { signal: AbortSignal.timeout(6000) }).catch(() => null),
           ]);
           const robots = robotsRes?.ok ? await robotsRes.text().catch(() => null) : null;
           return {
             robots: robots ? robots.slice(0, 8000) : null,
             sitemapOk: !!sitemapRes?.ok,
+            llmsOk: !!llmsRes?.ok,
           };
         } catch {
-          return { robots: null, sitemapOk: false };
+          return { robots: null, sitemapOk: false, llmsOk: false };
         }
       })(),
     ]);

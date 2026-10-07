@@ -9,30 +9,27 @@ import {
 } from "recharts";
 
 const PILLAR_INFO: Record<string, { full: string; what: string; fix: string }> = {
-  "Crawlability": { full: "Crawlability & Technical (15%)", what: "Can AI bots reach, load and render your pages? Title tags, meta descriptions, speed, and AI crawlers allowed in robots.txt.", fix: "Allow GPTBot/PerplexityBot/ClaudeBot, keep TTFB < 800ms, no JS-only content." },
-  "Structured": { full: "Structured Data & Machine Readability (20%)", what: "Machine-readable facts via JSON-LD (Organization, FAQPage, Article). Lets engines parse with certainty instead of guessing.", fix: "Add the schema bundle — highest-leverage fix (+12–18 pts)." },
-  "E-E-A-T": { full: "E-E-A-T & Trust (20%)", what: "Do engines trust you? Author bylines with credentials, publish dates, stats, and links to primary sources.", fix: "Add bios, dates, and 3+ outbound citations per key page." },
-  "Answer-Ready": { full: "Answer-Ready Content (25%)", what: "Is your content shaped like quotable answers? 40–60 word TL;DR up top, question-style headings, bullets and tables.", fix: "Lead every page with a direct answer block + 5 Q&A headings." },
-  "Freshness": { full: "Freshness & Reputation (10%)", what: "Do you look current and talked-about? Update dates, fresh edits, reviews and third-party mentions (Reddit, G2).", fix: "Refresh top pages every 60–90 days with a changelog note." },
-  "Citability": { full: "Citability & Evidence (10%)", what: "Is there anything shaped like a quotable fact? Stats, one-liners, tables and expert quotes answers can lift with a link.", fix: "One stat + source link per section, quotable takeaways." },
+  "Discover": { full: "Discoverability (25%)", what: "Can engines reach, parse and trust this page? Fetch, speed, canonical, sitemap, robots per-bot access, schema, llms.txt.", fix: "Canonical + sitemap + IndexNow; allow OAI-SearchBot et al.; add schema bundle." },
+  "Niche": { full: "Niche Ownership (15%)", what: "Do you own a narrow buying situation? Customer × geography × size × constraint dimensions.", fix: "Name the wedge explicitly: who, where, what size, deciding constraint." },
+  "Evidence": { full: "Evidence Base (25%)", what: "Do the selection pages exist with full anatomy? Pricing, security, compare, integrations + FAQ, tables, dates, author, corrections.", fix: "Publish the selection set; give every page the 7-part anatomy." },
+  "Facts": { full: "Citable Facts (20%)", what: "Are claims precise, sourced and downloadable? Stats, methodology, quotes, outbound links, limitations.", fix: "Name samples and methods; disclose where rivals win." },
+  "Validatn": { full: "Independent Corroboration (15%)", what: "Does anyone independent vouch for you? Reviews, press, partners, directories — never self-claims.", fix: "Earn press, marketplace listings, co-published cases; give reviewers sandbox access." },
 };
 
 const SHORT: Record<string, string> = {
-  "Crawlability & Technical": "Crawlability",
-  "Structured Data & Machine Readability": "Structured",
-  "E-E-A-T & Trust": "E-E-A-T",
-  "Answer-Ready Content": "Answer-Ready",
-  "Freshness & Reputation": "Freshness",
-  "Citability & Evidence": "Citability",
+  "Discoverability": "Discover",
+  "Niche Ownership": "Niche",
+  "Evidence Base": "Evidence",
+  "Citable Facts": "Facts",
+  "Independent Corroboration": "Validatn",
 };
 
 const DEFAULT_CATS = [
-  { label: "Crawlability & Technical", score: 72 },
-  { label: "Structured Data & Machine Readability", score: 44 },
-  { label: "E-E-A-T & Trust", score: 68 },
-  { label: "Answer-Ready Content", score: 81 },
-  { label: "Freshness & Reputation", score: 60 },
-  { label: "Citability & Evidence", score: 57 },
+  { label: "Discoverability", score: 66 },
+  { label: "Niche Ownership", score: 48 },
+  { label: "Evidence Base", score: 59 },
+  { label: "Citable Facts", score: 57 },
+  { label: "Independent Corroboration", score: 52 },
 ];
 
 export default function DashboardOverview() {

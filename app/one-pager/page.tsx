@@ -2,12 +2,11 @@
 import Link from "next/link";
 
 const pillars = [
-  ["Answer-ready · 25%", "Quotable TL;DR blocks, question-style headings, bullets & tables."],
-  ["Structured data · 20%", "JSON-LD schema bundle crawlers parse with certainty."],
-  ["E-E-A-T · 20%", "Authors, dates, stats, sources — trust signals models weigh."],
-  ["Crawlability · 15%", "Fast pages AI bots can reach and render."],
-  ["Freshness · 10%", "Visible dates, regular updates, review volume."],
-  ["Citability · 10%", "One-liners, numbers and tables answers can lift with a link."],
+  ["Niche Ownership · 15%", "A defensible wedge: customer, geography, size, constraint."],
+  ["Evidence Base · 25%", "Selection pages with full anatomy: answer, facts, tables, dates, author."],
+  ["Citable Facts · 20%", "Named studies, methods, quotes, sources — plus honest limits."],
+  ["Corroboration · 15%", "Press, partners, reviews — validation never self-claimed."],
+  ["Discoverability · 25%", "Crawlable, canonical, sitemap + IndexNow, per-bot access, schema."],
 ];
 
 const steps = [

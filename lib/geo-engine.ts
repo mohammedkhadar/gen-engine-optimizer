@@ -147,6 +147,7 @@ export function extractSignals(html: string) {
 export type SiteTech = {
   robots: string | null;
   sitemapOk: boolean;
+  llmsOk: boolean;
 };
 
 export function scoreUrl(url: string, html: string | null, loadMs: number, site?: SiteTech): GeoAuditResult {
@@ -204,8 +205,11 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     fixes: string[]
   ): AuditCategory => ({ key, label, score: clamp(score), weight, findings, fixes });
 
-  // 1. Crawlability & technical — playbook §5: indexable, canonical, sitemap,
-  // AI crawlers explicitly allowed (incl. OAI-SearchBot, separate from GPTBot).
+  // PILLAR 1 — Discoverability (playbook §5): public, rendered HTML with a
+  // 200 response, canonical, sitemap + IndexNow, accurate schema, and robots
+  // access for each AI crawler (OAI-SearchBot gates ChatGPT search separately
+  // from GPTBot training access). llms.txt noted honestly: assistants read
+  // it; Google says its AI features need no special markup.
   const robots = (site?.robots ?? "").toLowerCase();
   const botAllowed = (bot: string) => {
     if (!site?.robots) return null; // unknown — robots.txt unfetchable
@@ -225,11 +229,14 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
   if (s.canonical) crawl += 3;
   if (site?.sitemapOk) crawl += 3;
   if (blockedBots.length === 0 && site?.robots) crawl += 4;
-  const crawlCat = mk(
-    "crawl",
-    "Crawlability & Technical",
+  if (s.hasSchema) crawl += 10;
+  if (site?.llmsOk) crawl += 3;
+  if (s.hasOG) crawl += 2;
+  const discoverCat = mk(
+    "discover",
+    "Discoverability",
     crawl + rand("c") * 6 - 3,
-    0.15,
+    0.25,
     [
       fetched ? `Page fetched successfully (${(s.length / 1024).toFixed(1)} KB in ${loadMs}ms)` : "Could not fetch page — score estimated from domain signals",
       s.title ? `Title tag present: "${s.title.slice(0, 70)}"` : "Missing or empty <title> — AI engines use this as citation label",
@@ -242,6 +249,10 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
           ? `robots.txt blocks AI crawlers: ${blockedBots.join(", ")} — ChatGPT search needs OAI-SearchBot allowed (separate from GPTBot)`
           : `robots.txt allows AI crawlers${allowedBots.length ? ` (${allowedBots.join(", ")})` : ""}`
         : "Could not read robots.txt — verify AI crawlers (GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot) are allowed",
+      s.hasSchema ? "JSON-LD schema detected (Organization/WebSite/FAQPage expected)" : "No JSON-LD schema — mark up accurately; it aids extraction (note: Google needs no special AI markup beyond indexability)",
+      site?.llmsOk
+        ? "llms.txt present — assistant crawlers can use it (Google ignores it; indexability is what matters there)"
+        : "No llms.txt found — publish one for ChatGPT/Perplexity assistants (Google explicitly doesn't need it)",
     ],
     [
       "Add clean <title> (50–60 chars) + meta description (140–160 chars) on every key page",
@@ -251,147 +262,122 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     ]
   );
 
-  // 2. Structured data
-  let schema = 30;
-  if (s.hasSchema) schema += 35;
-  if (s.hasFAQ) schema += 12;
-  if (s.hasOG) schema += 8;
-  if (s.hasTables) schema += 5;
-  const schemaCat = mk(
-    "schema",
-    "Structured Data & Machine Readability",
-    schema + rand("s") * 8 - 4,
-    0.2,
+  // PILLAR 2 — Niche Ownership (playbook §1): a new brand wins by owning one
+  // narrow buying situation (customer × geography × size × constraint),
+  // not by targeting "best CRM".
+  const nicheScore = 30 + Math.min(4, s.nicheDims) * 12 + (s.hasNiche ? 8 : 0);
+  const nicheCat = mk(
+    "niche",
+    "Niche Ownership",
+    nicheScore + rand("n") * 6 - 3,
+    0.15,
     [
-      s.hasSchema ? "JSON-LD / schema.org markup detected" : "No JSON-LD schema detected — biggest GEO gap",
-      s.hasFAQ ? "FAQ-like structure detected" : "No FAQ schema — FAQs are the #1 citation source for AI answers",
-      s.hasOG ? "OpenGraph tags present" : "Missing OpenGraph tags",
-      s.hasTables || s.hasLists ? "Machine-readable lists/tables found" : "No clear lists/tables — LLMs prefer extractable facts",
+      `Niche dimensions detected: ${s.nicheDims}/4 (customer, geography, company size, deciding constraint)`,
+      s.nicheDims >= 3
+        ? "Strong wedge — answer engines have a defensible reason to include this brand"
+        : "Weak or missing wedge — new brands win narrow buying situations first, e.g. 'CRM for 5–25-person German recruitment agencies needing EU hosting'",
+      "Generic 'best CRM' visibility comes later; own one shortlist first",
     ],
     [
-      "Add Organization + WebSite + FAQPage + Article/Product JSON-LD",
-      "Mark up facts, pricing, reviews with schema.org types",
-      "Use semantic HTML: one H1, descriptive H2s phrased as questions",
+      "Define the 4 dimensions explicitly on a category page: who it serves, where, what size, and the deciding constraint (EU hosting, WhatsApp, Outlook/DATEV…)",
+      "Target shortlist questions first: 'best CRM for [audience]', '[product] vs HubSpot', 'CRM under €30/user'",
     ]
   );
 
-  // 3. E-E-A-T / Authority — playbook §4: third-party validation beats
-  // self-claims; methodology + caveats make benchmarks citable.
-  let eeat = 40 + rand("e") * 20;
-  if (s.hasAuthor) eeat += 10;
-  if (s.hasDates) eeat += 8;
-  if (s.hasQuotes) eeat += 6;
-  if (s.wordCount > 800) eeat += 8;
-  if (s.hasMethodology) eeat += 6;
-  if (s.hasEvidence) eeat += 4;
-  const eeatCat = mk(
-    "eeat",
-    "E-E-A-T & Trust",
-    eeat,
-    0.2,
+  // PILLAR 3 — Evidence Base (playbook §2): the selection pages must exist
+  // (pricing, security, compare, integrations, migration, customers, research,
+  // facts) and every page needs the 7-part anatomy: direct answer, facts,
+  // tables, sources + methodology, dates, author, corrections contact.
+  const pageHits = [s.hasPricingPage, s.hasComparePage, s.hasSecurity, s.hasIntegration].filter(Boolean).length;
+  let evidence = 25 + pageHits * 8;
+  if (s.hasFAQ) evidence += 8;
+  if (s.hasTables || s.hasLists) evidence += 6;
+  if (s.headings >= 4) evidence += 6;
+  if (s.hasDates) evidence += 5;
+  if (s.hasAuthor) evidence += 5;
+  if (s.hasCorrections) evidence += 4;
+  if (s.hasVersionHistory) evidence += 4;
+  const evidenceCat = mk(
+    "evidence",
+    "Evidence Base",
+    evidence + rand("e") * 6 - 3,
+    0.25,
     [
-      s.hasAuthor ? "Author/byline signals found" : "No clear author attribution — AI models discount anonymous claims",
-      s.hasDates ? "Publish/update dates detected" : "No visible publish dates — freshness unclear to models",
+      `Selection pages detected: ${pageHits}/4 (pricing, comparison, security, integrations)`,
+      ...(s.pricingUrl ? [`Pricing page linked: ${s.pricingUrl}`] : ["No pricing page linked — publish exact prices, limits, commitments"]),
+      ...(s.compareUrl ? [`Comparison page linked: ${s.compareUrl}`] : ["No comparison page linked — publish honest vs/migration pages with measurable distinctions"]),
+      s.hasSecurity ? "Security/compliance signals detected (GDPR, SOC 2, residency)" : "No security/compliance content — 'Is it GDPR compliant?' and 'where is data hosted?' go unanswered",
+      s.hasIntegration ? "Integration content detected" : "No integration content — 'does it integrate with X?' unanswered",
+      s.hasFAQ ? "FAQ structure detected" : "No FAQ structure — FAQs are the #1 citation source for AI answers",
+      s.hasTables || s.hasLists ? "Tables/lists detected (evidence engines extract)" : "No tables/lists — add evidence and comparison tables",
+      s.headings >= 4 ? `${s.headings} headings — decent question coverage` : `Only ${s.headings} headings — add question-style H2s (What / How much / Vs / Best / How to)`,
+      s.hasDates ? "Publish/update dates detected" : "No visible publish or last-updated dates",
+      s.hasAuthor ? "Author/byline signals found" : "No author attribution — anonymous claims get discounted",
+      s.hasCorrections ? "Corrections/media contact present" : "No corrections contact — add one so claims stay trustworthy",
+      s.hasVersionHistory ? "Version/changelog history detected" : "No version history — publish a changelog so updates are verifiable",
       s.wordCount > 300 ? `${s.wordCount.toLocaleString()} words of extractable text` : s.wordCount < 50 && fetched
         ? `Only ${s.wordCount} readable words — likely a login wall, JS-only app, or portal-style homepage with no content (e.g. google.com). Audit a content-rich inner page instead; this score doesn't reflect one.`
         : `Only ${s.wordCount} words — thin content rarely cited`,
-      s.hasStats ? "Statistics / numbers detected (good for citations)" : "No statistics detected — concrete numbers earn citations",
+    ],
+    [
+      "Publish the selection set first: /pricing, /security, /compare/X, /integrations/X, /migration/X, /customers/X, /research/X, /facts",
+      "Give every page the 7-part anatomy: direct answer on top, specific facts, evidence table, sources + methodology, dates, named author, corrections contact",
+      "Start each key page with a 40–60 word direct answer; keep paragraphs under 60 words",
+    ]
+  );
+
+  // PILLAR 4 — Citable Facts (playbook §3): precise, current, independently
+  // corroborated evidence with methodology, caveats, and downloadable data.
+  let facts = 35;
+  if (s.hasStats) facts += 12;
+  if (s.hasMethodology) facts += 10;
+  if (s.hasQuotes) facts += 6;
+  if (s.links >= 3) facts += 6;
+  if (s.hasDownloadable) facts += 6;
+  if (s.hasLimitations) facts += 5;
+  const factsCat = mk(
+    "facts",
+    "Citable Facts",
+    facts + rand("f2") * 6 - 3,
+    0.2,
+    [
+      s.hasStats ? "Quantified claims found" : "Few quantified claims — 'dramatically improves productivity' is not citable",
       s.hasMethodology ? "Methodology/sample-size language detected — benchmarks look citable" : "No methodology or sample-size language — name how numbers were produced",
-      s.hasEvidence ? "Customer proof signals (cases, reviews, ratings) detected" : "No customer-proof signals — add cases with sample size + timeframe",
-      s.hasCorrections ? "Corrections/media contact present — errors are fixable, claims look maintained" : "No corrections contact — add one so claims stay trustworthy",
-      s.hasVersionHistory ? "Version/changelog history detected" : "No version history — publish a changelog so updates are verifiable",
+      s.hasQuotes ? "Quotable blocks found" : "No blockquotes / expert quotes",
+      s.links >= 3 ? `${s.links} outbound links — claims can be traced` : "Few outbound links — cite primary sources (.edu, docs, research)",
+      s.hasDownloadable ? "Downloadable data/report detected" : "No downloadable aggregate data — publish the dataset behind benchmarks",
+      s.hasLimitations ? "Limitations/caveats disclosed — far more credible than winner-declaring" : "No limitations disclosed — say where competitors are stronger",
     ],
     [
-      "Add author bios with credentials + link to LinkedIn",
-      "Show Published / Updated dates, cite primary sources",
-      "Add original data with a named methodology, sample size, and caveats — then earn third-party coverage of it",
+      "Replace adjectives with named, quantified studies: sample, calculation, exclusions, dates",
+      "Publish one original benchmark for your niche with public methodology and downloadable data",
+      "Disclose limitations and where competitors win — credibility earns citations",
     ]
   );
 
-  // 4. Conversational / answer-ready — playbook §1–2: own a narrow category
-  // and answer real selection questions (pricing, vs, migration, GDPR…).
-  let conv = 35;
-  if (s.hasQA) conv += 15;
-  if (s.headings >= 4) conv += 12;
-  if (s.hasLists) conv += 10;
-  if (s.wordCount > 600 && s.wordCount < 4000) conv += 8;
-  if (s.hasFAQ) conv += 8;
-  if (s.hasNiche) conv += 5;
-  // v2 niche depth: 0–4 dimensions (customer, geography, size, constraint).
-  // A new brand wins by owning a narrow buying situation, not "best CRM".
-  conv += Math.min(4, s.nicheDims) * 2;
-  if (s.hasSecurity) conv += 4;
-  if (s.hasIntegration) conv += 4;
-  if (s.hasComparison) conv += 4;
-  const convCat = mk(
-    "answer",
-    "Answer-Ready Content",
-    conv + rand("a") * 8 - 4,
-    0.25,
+  // PILLAR 5 — Independent Corroboration (playbook §4): validation must come
+  // from third parties (press, partners, directories, reviewers), never
+  // self-claims. Give reviewers sandbox access, data, and limitations.
+  const corroboration = 40 + rand("c2") * 20 + (s.hasEvidence ? 10 : 0) + (s.hasDates ? 5 : 0);
+  const corroborationCat = mk(
+    "corroboration",
+    "Independent Corroboration",
+    corroboration,
+    0.15,
     [
-      s.headings >= 4 ? `${s.headings} headings — decent question coverage` : `Only ${s.headings} headings — add question-style H2s`,
-      ...(s.pricingUrl ? [`Pricing page linked: ${s.pricingUrl}`] : []),
-      ...(s.compareUrl ? [`Comparison page linked: ${s.compareUrl}`] : []),
-      s.hasNiche ? `Niche wedge present (${s.nicheDims}/4 dimensions: customer, geography, size, constraint)` : `No niche wedge detected (0/4) — new brands win narrow buying situations first, e.g. 'CRM for 5–25-person German recruitment agencies needing EU hosting'`,
-      s.hasSecurity ? "Security/compliance signals detected (GDPR, SOC 2, residency)" : "No security/compliance content — 'Is it GDPR compliant?' and 'where is data hosted?' go unanswered",
-      s.hasIntegration ? "Integration content detected" : "No integration content — 'does it integrate with X?' unanswered",
-      s.hasComparison ? "Comparison/migration phrasing detected" : "No comparison phrasing — add honest vs/migration pages with measurable distinctions",
-      s.hasLists ? "Lists detected (LLMs love step-by-step extraction)" : "No lists — add TL;DR + steps + pros/cons blocks",
-      s.hasQA ? "Question phrasing detected" : "No direct Q&A phrasing — mirror how users prompt AI",
-      s.wordCount > 0 ? `Density: ~${s.wordCount} words` : "No content analyzed",
-    ],
-    [
-      "Start each key page with a 40–60 word direct answer (AI excerpt block)",
-      "Add 'People also ask' style H2s: What / How much / Vs / Best / How to",
-      "Keep paragraphs < 60 words, use bullets for facts",
-      "Publish the selection set: pricing, vs-HubSpot, migration, integrations, GDPR/data-hosting — answer first, evidence after, never declare yourself the winner",
-    ]
-  );
-
-  // 5. Freshness & reputation — playbook §4: validation must come from
-  // third parties (press, partners, directories, reviewers), never self-claims.
-  const fresh = 45 + rand("f") * 25 + (s.hasDates ? 10 : 0) + (s.hasEvidence ? 5 : 0);
-  const freshCat = mk(
-    "fresh",
-    "Freshness & Reputation",
-    fresh,
-    0.1,
-    [
-      s.hasDates ? "Freshness signals present" : "No freshness signals",
-      s.hasEvidence ? "Customer-proof signals present (cases, reviews)" : "No customer-proof signals on this page — reviewers need product access, data, and limitations to cite you",
+      s.hasEvidence ? "Customer-proof signals present (cases, reviews, ratings)" : "No customer-proof signals on this page — reviewers need product access, data, and limitations to cite you",
       "Backlink velocity & review volume estimated from domain age heuristics",
       "Brand mention frequency across simulated AI corpora: " + (seed % 3 === 0 ? "low" : seed % 3 === 1 ? "moderate" : "emerging"),
     ],
     [
-      "Update top 10 pages every 60–90 days with a changelog note",
-      "Earn legitimate third-party validation: press, integration partners, customer case studies, associations, directories, podcasts — never bought reviews or disguised comparison sites",
-      "Collect verified reviews with structured Review markup",
+      "Earn legitimate third-party validation: genuine customer reviews, integration marketplace listings, co-published cases, niche reviewers, associations, directories, podcasts",
+      "Give reviewers a sandbox, test procedure, fact sheet, and known limitations — never ask to merely 'be added to a top-X list'",
+      "Never buy reviews or run disguised 'independent' comparison sites",
     ]
   );
 
-  // 6. Citability
-  let cite = 38 + rand("ci") * 18;
-  if (s.hasQuotes) cite += 8;
-  if (s.hasStats) cite += 10;
-  if (s.hasTables) cite += 6;
-  const citeCat = mk(
-    "cite",
-    "Citability & Evidence",
-    cite,
-    0.1,
-    [
-      s.hasStats ? "Quantified claims found" : "Few quantified claims",
-      s.hasQuotes ? "Quotable blocks found" : "No blockquotes / expert quotes",
-      `${s.links} outbound links, ${s.images} images`,
-    ],
-    [
-      "Add quotable one-liners with a stat in every section",
-      "Link out to authoritative sources (.edu, docs, research)",
-      "Publish original charts with descriptive alt text + data tables",
-    ]
-  );
 
-  const categories = [crawlCat, schemaCat, eeatCat, convCat, freshCat, citeCat];
+  const categories = [discoverCat, nicheCat, evidenceCat, factsCat, corroborationCat];
   const overall = clamp(
     categories.reduce((a, c) => a + c.score * c.weight, 0)
   );

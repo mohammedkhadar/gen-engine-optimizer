@@ -88,12 +88,24 @@ export function extractSignals(html: string) {
     /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["']/i.exec(html)?.[1] ??
     null;
   // Playbook signals: niche ownership, selection pages, verifiable claims.
+  // v2: niche = 4 dimensions (customer, geography, size, constraint);
+  // evidence = corrections contact, version history, downloadable data,
+  // honest limitations (esp. on comparison pages).
   const hasIntegration = has("integration") || has("integrates with") || has("api docs") || has("api documentation");
   const hasSecurity = has("gdpr") || has("soc 2") || has("soc2") || has("iso 27001") || has("data residency") || has("data hosted") || has("security") || has("privacy policy");
   const hasComparison = has(" vs ") || has("versus") || has("alternative") || has("compare") || has("migrate from");
   const hasMethodology = has("methodology") || has("sample size") || has("n=") || has("limitations") || has("benchmark");
   const hasEvidence = has("case study") || has("customer") || has("testimonial") || has("review") || has("rating");
   const hasNiche = has("for ") && (has("teams") || has("agencies") || has("firms") || has("businesses") || has("startups"));
+  const nicheDims =
+    (has("for ") && (has("teams") || has("agencies") || has("firms") || has("businesses") || has("startups")) ? 1 : 0) +
+    (/\b(germany|german|dach|france|french|uk\b|british|spain|spanish|poland|polish|europe|european|usa|american|austin|berlin|london)\b/.test(lower) ? 1 : 0) +
+    (/\b\d+\s?(-|–|to)\s?\d+\s?(person|people|users|employees|seats)|under \d+|small (team|business)/.test(lower) ? 1 : 0) +
+    (has("gdpr") || has("eu hosting") || has("eu data") || has("data residency") || has("whatsapp") || has("outlook") || has("datev") || has("integration") ? 1 : 0);
+  const hasCorrections = has("corrections") || has("correction") || has("report an error") || has("media contact");
+  const hasVersionHistory = has("changelog") || has("version history") || has("what's new") || has("release notes");
+  const hasDownloadable = has("download") && (has("csv") || has("data") || has("report") || has("dataset"));
+  const hasLimitations = has("limitation") || has("drawback") || has("however,") || has("where") && has("stronger");
   return {
     title,
     description: desc,
@@ -124,6 +136,11 @@ export function extractSignals(html: string) {
     hasMethodology,
     hasEvidence,
     hasNiche,
+    nicheDims,
+    hasCorrections,
+    hasVersionHistory,
+    hasDownloadable,
+    hasLimitations,
   };
 }
 
@@ -169,6 +186,11 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
         hasMethodology: false,
         hasEvidence: false,
         hasNiche: false,
+        nicheDims: 0,
+        hasCorrections: false,
+        hasVersionHistory: false,
+        hasDownloadable: false,
+        hasLimitations: false,
       };
 
   const fetched = !!html;
@@ -276,6 +298,8 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
       s.hasStats ? "Statistics / numbers detected (good for citations)" : "No statistics detected — concrete numbers earn citations",
       s.hasMethodology ? "Methodology/sample-size language detected — benchmarks look citable" : "No methodology or sample-size language — name how numbers were produced",
       s.hasEvidence ? "Customer proof signals (cases, reviews, ratings) detected" : "No customer-proof signals — add cases with sample size + timeframe",
+      s.hasCorrections ? "Corrections/media contact present — errors are fixable, claims look maintained" : "No corrections contact — add one so claims stay trustworthy",
+      s.hasVersionHistory ? "Version/changelog history detected" : "No version history — publish a changelog so updates are verifiable",
     ],
     [
       "Add author bios with credentials + link to LinkedIn",
@@ -293,6 +317,9 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
   if (s.wordCount > 600 && s.wordCount < 4000) conv += 8;
   if (s.hasFAQ) conv += 8;
   if (s.hasNiche) conv += 5;
+  // v2 niche depth: 0–4 dimensions (customer, geography, size, constraint).
+  // A new brand wins by owning a narrow buying situation, not "best CRM".
+  conv += Math.min(4, s.nicheDims) * 2;
   if (s.hasSecurity) conv += 4;
   if (s.hasIntegration) conv += 4;
   if (s.hasComparison) conv += 4;
@@ -305,7 +332,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
       s.headings >= 4 ? `${s.headings} headings — decent question coverage` : `Only ${s.headings} headings — add question-style H2s`,
       ...(s.pricingUrl ? [`Pricing page linked: ${s.pricingUrl}`] : []),
       ...(s.compareUrl ? [`Comparison page linked: ${s.compareUrl}`] : []),
-      s.hasNiche ? "Audience-specific niche language detected (good wedge for new brands)" : "No clear audience wedge — name exactly who this is for (e.g. 'CRM for teams under 20')",
+      s.hasNiche ? `Niche wedge present (${s.nicheDims}/4 dimensions: customer, geography, size, constraint)` : `No niche wedge detected (0/4) — new brands win narrow buying situations first, e.g. 'CRM for 5–25-person German recruitment agencies needing EU hosting'`,
       s.hasSecurity ? "Security/compliance signals detected (GDPR, SOC 2, residency)" : "No security/compliance content — 'Is it GDPR compliant?' and 'where is data hosted?' go unanswered",
       s.hasIntegration ? "Integration content detected" : "No integration content — 'does it integrate with X?' unanswered",
       s.hasComparison ? "Comparison/migration phrasing detected" : "No comparison phrasing — add honest vs/migration pages with measurable distinctions",
@@ -417,8 +444,14 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
     ...(!s.hasPricingPage && s.hasComparePage
       ? [{ title: "Publish a pricing page", impact: "+4–6 pts", effort: "1–2 hrs", detail: `Comparison content detected${s.compareUrl ? ` at ${s.compareUrl}` : ""} — now add transparent pricing with tables, the most-cited page type of all.` }]
       : []),
+    ...(!s.hasCorrections || !s.hasVersionHistory
+      ? [{ title: "Add corrections contact + version history", impact: "+3–5 pts", effort: "20 min", detail: "A corrections/media contact plus a changelog make every claim maintainable — the v2 evidence standard for citable pages." }]
+      : []),
+    ...(s.hasComparison && !s.hasLimitations
+      ? [{ title: "Disclose where competitors are stronger", impact: "+3–5 pts", effort: "30 min", detail: "Comparison page detected but no honest limitations. Naming where rivals win makes the page far more credible — and more cited — than winner-declaring." }]
+      : []),
     { title: "Earn 5 third-party mentions", impact: "+5–10 pts", effort: "Ongoing", detail: "Reddit, G2, Capterra, Quora, niche blogs — LLMs memorize these corpora." },
-    { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt summary." },
+    { title: "Publish llms.txt & allow AI bots", impact: "+4–7 pts", effort: "20 min", detail: "Whitelist GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot in robots.txt; publish /llms.txt for assistant crawlers. Note: Google says its AI features need no special markup — indexability is what matters there." },
   ];
 
   // Thin/walled pages: page-content fixes (excerpts, comparisons, authorship)

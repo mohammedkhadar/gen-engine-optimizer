@@ -11,8 +11,28 @@ export async function POST(req: NextRequest) {
     const { url: raw, brand } = await req.json();
     if (!raw || typeof raw !== "string") return NextResponse.json({ error: "Provide a URL" }, { status: 400 });
     const url = normalizeUrl(raw);
-    const { html, loadMs } = await fetchHtml(url);
-    const result = scoreUrl(url, html, loadMs);
+    const origin = new URL(url).origin;
+    const [{ html, loadMs }, site] = await Promise.all([
+      fetchHtml(url),
+      // Site-level tech: robots.txt (AI crawler permissions incl.
+      // OAI-SearchBot) + sitemap reachability. Best-effort, never fatal.
+      (async () => {
+        try {
+          const [robotsRes, sitemapRes] = await Promise.all([
+            fetch(origin + "/robots.txt", { signal: AbortSignal.timeout(6000) }).catch(() => null),
+            fetch(origin + "/sitemap.xml", { signal: AbortSignal.timeout(6000) }).catch(() => null),
+          ]);
+          const robots = robotsRes?.ok ? await robotsRes.text().catch(() => null) : null;
+          return {
+            robots: robots ? robots.slice(0, 8000) : null,
+            sitemapOk: !!sitemapRes?.ok,
+          };
+        } catch {
+          return { robots: null, sitemapOk: false };
+        }
+      })(),
+    ]);
+    const result = scoreUrl(url, html, loadMs, site);
 
     const record = {
       url: result.url,

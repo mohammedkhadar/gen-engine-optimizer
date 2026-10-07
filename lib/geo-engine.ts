@@ -83,6 +83,17 @@ export function extractSignals(html: string) {
   const pricingUrl = hrefs.find((h) => PRICING_RE.test(pathOf(h))) ?? null;
   const compareUrl = hrefs.find((h) => COMPARE_RE.test(pathOf(h))) ?? null;
   const has = (s: string) => lower.includes(s);
+  const canonical =
+    /<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["']/i.exec(html)?.[1] ??
+    /<link[^>]*href=["']([^"']+)["'][^>]*rel=["']canonical["']/i.exec(html)?.[1] ??
+    null;
+  // Playbook signals: niche ownership, selection pages, verifiable claims.
+  const hasIntegration = has("integration") || has("integrates with") || has("api docs") || has("api documentation");
+  const hasSecurity = has("gdpr") || has("soc 2") || has("soc2") || has("iso 27001") || has("data residency") || has("data hosted") || has("security") || has("privacy policy");
+  const hasComparison = has(" vs ") || has("versus") || has("alternative") || has("compare") || has("migrate from");
+  const hasMethodology = has("methodology") || has("sample size") || has("n=") || has("limitations") || has("benchmark");
+  const hasEvidence = has("case study") || has("customer") || has("testimonial") || has("review") || has("rating");
+  const hasNiche = has("for ") && (has("teams") || has("agencies") || has("firms") || has("businesses") || has("startups"));
   return {
     title,
     description: desc,
@@ -106,10 +117,22 @@ export function extractSignals(html: string) {
     hasStats: /\d+\s?%|\$\d+|\d{4}/.test(text),
     hasQuotes: has("<blockquote"),
     length: html.length,
+    canonical,
+    hasIntegration,
+    hasSecurity,
+    hasComparison,
+    hasMethodology,
+    hasEvidence,
+    hasNiche,
   };
 }
 
-export function scoreUrl(url: string, html: string | null, loadMs: number): GeoAuditResult {
+export type SiteTech = {
+  robots: string | null;
+  sitemapOk: boolean;
+};
+
+export function scoreUrl(url: string, html: string | null, loadMs: number, site?: SiteTech): GeoAuditResult {
   const seed = hashStr(url);
   const rand = (salt: string) => (hashStr(url + salt) % 1000) / 1000;
 
@@ -139,6 +162,13 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
         hasStats: false,
         hasQuotes: false,
         length: 0,
+        canonical: null,
+        hasIntegration: false,
+        hasSecurity: false,
+        hasComparison: false,
+        hasMethodology: false,
+        hasEvidence: false,
+        hasNiche: false,
       };
 
   const fetched = !!html;
@@ -152,13 +182,27 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     fixes: string[]
   ): AuditCategory => ({ key, label, score: clamp(score), weight, findings, fixes });
 
-  // 1. Crawlability & technical
+  // 1. Crawlability & technical — playbook §5: indexable, canonical, sitemap,
+  // AI crawlers explicitly allowed (incl. OAI-SearchBot, separate from GPTBot).
+  const robots = (site?.robots ?? "").toLowerCase();
+  const botAllowed = (bot: string) => {
+    if (!site?.robots) return null; // unknown — robots.txt unfetchable
+    const blocks = new RegExp(`user-agent:\\s*\\*[^]*?disallow:\\s*/`, "i").test(site.robots);
+    const namedBlock = new RegExp(`user-agent:\\s*${bot}[^]*?disallow:\\s*/`, "i").test(robots);
+    return !namedBlock && !blocks;
+  };
+  const bots = ["gptbot", "oai-searchbot", "perplexitybot", "claudebot"];
+  const allowedBots = bots.filter((b) => botAllowed(b) === true);
+  const blockedBots = bots.filter((b) => botAllowed(b) === false);
   let crawl = 55;
   if (fetched) crawl += 20;
   if (s.title) crawl += 8;
   if (s.description) crawl += 7;
   if (loadMs < 1500) crawl += 8;
   else if (loadMs < 3000) crawl += 4;
+  if (s.canonical) crawl += 3;
+  if (site?.sitemapOk) crawl += 3;
+  if (blockedBots.length === 0 && site?.robots) crawl += 4;
   const crawlCat = mk(
     "crawl",
     "Crawlability & Technical",
@@ -169,11 +213,19 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
       s.title ? `Title tag present: "${s.title.slice(0, 70)}"` : "Missing or empty <title> — AI engines use this as citation label",
       s.description ? "Meta description present" : "Missing meta description — hurts click-through from AI answers",
       loadMs < 2000 ? `Fast response (${loadMs}ms)` : `Slow response (${loadMs}ms) — crawlers may truncate`,
+      s.canonical ? `Canonical URL set: ${s.canonical.slice(0, 80)}` : "No canonical link — generative features need unambiguous canonicals",
+      site?.sitemapOk ? "XML sitemap reachable — use IndexNow/Bing Webmaster for fast re-discovery" : "No XML sitemap found at /sitemap.xml — crawlers discover changes slower",
+      site?.robots
+        ? blockedBots.length
+          ? `robots.txt blocks AI crawlers: ${blockedBots.join(", ")} — ChatGPT search needs OAI-SearchBot allowed (separate from GPTBot)`
+          : `robots.txt allows AI crawlers${allowedBots.length ? ` (${allowedBots.join(", ")})` : ""}`
+        : "Could not read robots.txt — verify AI crawlers (GPTBot, OAI-SearchBot, PerplexityBot, ClaudeBot) are allowed",
     ],
     [
       "Add clean <title> (50–60 chars) + meta description (140–160 chars) on every key page",
       "Keep TTFB < 800ms, ensure no JS-only rendering for core content",
-      "Publish /sitemap.xml + /robots.txt allowing AI crawlers (GPTBot, PerplexityBot, ClaudeBot)",
+      "Set canonical URLs + publish /sitemap.xml; submit via Bing Webmaster Tools and IndexNow so pricing/docs changes are re-discovered fast",
+      "Allow AI crawlers in robots.txt — including OAI-SearchBot for ChatGPT search (OpenAI treats it separately from GPTBot)",
     ]
   );
 
@@ -201,12 +253,15 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     ]
   );
 
-  // 3. E-E-A-T / Authority
+  // 3. E-E-A-T / Authority — playbook §4: third-party validation beats
+  // self-claims; methodology + caveats make benchmarks citable.
   let eeat = 40 + rand("e") * 20;
   if (s.hasAuthor) eeat += 10;
   if (s.hasDates) eeat += 8;
   if (s.hasQuotes) eeat += 6;
   if (s.wordCount > 800) eeat += 8;
+  if (s.hasMethodology) eeat += 6;
+  if (s.hasEvidence) eeat += 4;
   const eeatCat = mk(
     "eeat",
     "E-E-A-T & Trust",
@@ -219,21 +274,28 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
         ? `Only ${s.wordCount} readable words — likely a login wall, JS-only app, or portal-style homepage with no content (e.g. google.com). Audit a content-rich inner page instead; this score doesn't reflect one.`
         : `Only ${s.wordCount} words — thin content rarely cited`,
       s.hasStats ? "Statistics / numbers detected (good for citations)" : "No statistics detected — concrete numbers earn citations",
+      s.hasMethodology ? "Methodology/sample-size language detected — benchmarks look citable" : "No methodology or sample-size language — name how numbers were produced",
+      s.hasEvidence ? "Customer proof signals (cases, reviews, ratings) detected" : "No customer-proof signals — add cases with sample size + timeframe",
     ],
     [
       "Add author bios with credentials + link to LinkedIn",
       "Show Published / Updated dates, cite primary sources",
-      "Add original data, benchmarks, or case-study numbers",
+      "Add original data with a named methodology, sample size, and caveats — then earn third-party coverage of it",
     ]
   );
 
-  // 4. Conversational / answer-ready
+  // 4. Conversational / answer-ready — playbook §1–2: own a narrow category
+  // and answer real selection questions (pricing, vs, migration, GDPR…).
   let conv = 35;
   if (s.hasQA) conv += 15;
   if (s.headings >= 4) conv += 12;
   if (s.hasLists) conv += 10;
   if (s.wordCount > 600 && s.wordCount < 4000) conv += 8;
   if (s.hasFAQ) conv += 8;
+  if (s.hasNiche) conv += 5;
+  if (s.hasSecurity) conv += 4;
+  if (s.hasIntegration) conv += 4;
+  if (s.hasComparison) conv += 4;
   const convCat = mk(
     "answer",
     "Answer-Ready Content",
@@ -243,6 +305,10 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
       s.headings >= 4 ? `${s.headings} headings — decent question coverage` : `Only ${s.headings} headings — add question-style H2s`,
       ...(s.pricingUrl ? [`Pricing page linked: ${s.pricingUrl}`] : []),
       ...(s.compareUrl ? [`Comparison page linked: ${s.compareUrl}`] : []),
+      s.hasNiche ? "Audience-specific niche language detected (good wedge for new brands)" : "No clear audience wedge — name exactly who this is for (e.g. 'CRM for teams under 20')",
+      s.hasSecurity ? "Security/compliance signals detected (GDPR, SOC 2, residency)" : "No security/compliance content — 'Is it GDPR compliant?' and 'where is data hosted?' go unanswered",
+      s.hasIntegration ? "Integration content detected" : "No integration content — 'does it integrate with X?' unanswered",
+      s.hasComparison ? "Comparison/migration phrasing detected" : "No comparison phrasing — add honest vs/migration pages with measurable distinctions",
       s.hasLists ? "Lists detected (LLMs love step-by-step extraction)" : "No lists — add TL;DR + steps + pros/cons blocks",
       s.hasQA ? "Question phrasing detected" : "No direct Q&A phrasing — mirror how users prompt AI",
       s.wordCount > 0 ? `Density: ~${s.wordCount} words` : "No content analyzed",
@@ -251,11 +317,13 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
       "Start each key page with a 40–60 word direct answer (AI excerpt block)",
       "Add 'People also ask' style H2s: What / How much / Vs / Best / How to",
       "Keep paragraphs < 60 words, use bullets for facts",
+      "Publish the selection set: pricing, vs-HubSpot, migration, integrations, GDPR/data-hosting — answer first, evidence after, never declare yourself the winner",
     ]
   );
 
-  // 5. Freshness & reputation
-  const fresh = 45 + rand("f") * 25 + (s.hasDates ? 10 : 0);
+  // 5. Freshness & reputation — playbook §4: validation must come from
+  // third parties (press, partners, directories, reviewers), never self-claims.
+  const fresh = 45 + rand("f") * 25 + (s.hasDates ? 10 : 0) + (s.hasEvidence ? 5 : 0);
   const freshCat = mk(
     "fresh",
     "Freshness & Reputation",
@@ -263,12 +331,13 @@ export function scoreUrl(url: string, html: string | null, loadMs: number): GeoA
     0.1,
     [
       s.hasDates ? "Freshness signals present" : "No freshness signals",
+      s.hasEvidence ? "Customer-proof signals present (cases, reviews)" : "No customer-proof signals on this page — reviewers need product access, data, and limitations to cite you",
       "Backlink velocity & review volume estimated from domain age heuristics",
       "Brand mention frequency across simulated AI corpora: " + (seed % 3 === 0 ? "low" : seed % 3 === 1 ? "moderate" : "emerging"),
     ],
     [
       "Update top 10 pages every 60–90 days with a changelog note",
-      "Earn mentions on Reddit, Quora, G2, Capterra — LLMs train on these",
+      "Earn legitimate third-party validation: press, integration partners, customer case studies, associations, directories, podcasts — never bought reviews or disguised comparison sites",
       "Collect verified reviews with structured Review markup",
     ]
   );

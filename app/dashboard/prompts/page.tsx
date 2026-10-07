@@ -72,8 +72,11 @@ export default function PromptsPage() {
     }
   };
   // Opens the setup dialog prefilled for a fresh run on the audited site.
-  const startFreshSetup = (t: { brand: string; domain: string } | null, audit: any) => {
-    if (t) setDBrand(t.brand);
+  // resetBrand clears a stale brand from a previous site (a new audit host
+  // means we can't assume the tracked brand still applies).
+  const startFreshSetup = (t: { brand: string; domain: string } | null, audit: any, resetBrand = false) => {
+    if (t && !resetBrand) setDBrand(t.brand);
+    if (resetBrand) setDBrand("");
     if (audit?.url) {
       setDUrl(audit.url);
       const host = hostOf(audit.url);
@@ -106,10 +109,12 @@ export default function PromptsPage() {
         } catch {}
         // New site: clear stale numbers and open setup for it. Idempotent:
         // a repeat pass (StrictMode double-effect) re-derives the same state.
+        // The old brand is NOT carried over — a new audit host means the
+        // tracked brand can't be assumed to still apply.
         setTests([]);
         setSource(null);
         setTarget(t);
-        startFreshSetup(t, audit);
+        startFreshSetup(t, audit, true);
         return;
       }
       setTarget(t);
@@ -118,14 +123,9 @@ export default function PromptsPage() {
         setSource(saved.source);
         return;
       }
-      // No saved results but the tracked target belongs to a different site
-      // than the current audit (e.g. cleared state, legacy records): open
-      // fresh setup instead of showing a dead empty page.
-      if (auditHost && targetHost && targetHost !== auditHost) {
-        setTests([]);
-        setSource(null);
-        startFreshSetup(t, audit);
-      }
+      // No saved results at all (never ran, failed run, cleared state):
+      // open setup rather than stranding on an empty page.
+      startFreshSetup(t, audit);
     });
     };
     check();

@@ -101,6 +101,19 @@ export function extractSignals(html: string) {
   const hasComparison = has(" vs ") || has("versus") || has("alternative") || has("compare") || has("migrate from");
   const hasMethodology = has("methodology") || has("sample size") || has("n=") || has("limitations") || has("benchmark");
   const hasEvidence = has("case study") || has("customer") || has("testimonial") || has("review") || has("rating");
+  // Vertical guess for adaptive guidance examples (CRM fallback).
+  const vertical =
+    has("therap") || has("clinic") || has("dental") || has("doctor") || has("wellness")
+      ? ("therapy" as const)
+      : has("recruit") || has("staffing") || has("hiring")
+        ? ("recruitment" as const)
+        : has("accounting") || has("invoice") || has("tax") || has("bookkeep")
+          ? ("accounting" as const)
+          : has("shop") || has("store") || has("commerce") || has("e-commerce") || has("ecommerce")
+            ? ("commerce" as const)
+            : has("crm") || has("sales") || has("leads") || has("pipeline")
+              ? ("crm" as const)
+              : null;
   const hasNiche = has("for ") && (has("teams") || has("agencies") || has("firms") || has("businesses") || has("startups"));
   const nicheDims =
     (has("for ") && (has("teams") || has("agencies") || has("firms") || has("businesses") || has("startups")) ? 1 : 0) +
@@ -141,6 +154,7 @@ export function extractSignals(html: string) {
     hasMethodology,
     hasEvidence,
     hasNiche,
+    vertical,
     nicheDims,
     hasCorrections,
     hasVersionHistory,
@@ -192,6 +206,7 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
         hasMethodology: false,
         hasEvidence: false,
         hasNiche: false,
+        vertical: null,
         nicheDims: 0,
         hasCorrections: false,
         hasVersionHistory: false,
@@ -271,7 +286,18 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
 
   // PILLAR 2 — Niche Ownership (playbook §1): a new brand wins by owning one
   // narrow buying situation (customer × geography × size × constraint),
-  // not by targeting "best CRM".
+  // not by targeting "best CRM". The guidance example follows the detected
+  // vertical so it never reads oddly next to unrelated results.
+  const wedgeExample =
+    s.vertical === "therapy"
+      ? "Therapy for English-speaking expats in Berlin needing evening sessions"
+      : s.vertical === "recruitment"
+        ? "Recruiting software for 5–20-person German agencies placing healthcare staff"
+        : s.vertical === "accounting"
+          ? "GDPR-first accounting for 2–10-person firms with DATEV integration"
+          : s.vertical === "commerce"
+            ? "Checkout for single-product EU stores needing Klarna and VAT handling"
+            : "CRM for 5–25-person German recruitment agencies needing EU hosting";
   const nicheScore = 30 + Math.min(4, s.nicheDims) * 12 + (s.hasNiche ? 8 : 0);
   const nicheCat = mk(
     "niche",
@@ -282,8 +308,8 @@ export function scoreUrl(url: string, html: string | null, loadMs: number, site?
       `Niche dimensions detected: ${s.nicheDims}/4 (customer, geography, company size, deciding constraint)`,
       s.nicheDims >= 3
         ? "Strong wedge — answer engines have a defensible reason to include this brand"
-        : "Weak or missing wedge — new brands win narrow buying situations first, e.g. 'CRM for 5–25-person German recruitment agencies needing EU hosting'",
-      "Generic 'best CRM' visibility comes later; own one shortlist first",
+        : `Weak or missing wedge — new brands win narrow buying situations first, e.g. '${wedgeExample}'`,
+      "Generic 'best category' visibility comes later; own one shortlist first",
     ],
     [
       "Define the 4 dimensions explicitly on a category page: who it serves, where, what size, and the deciding constraint (EU hosting, WhatsApp, Outlook/DATEV…)",

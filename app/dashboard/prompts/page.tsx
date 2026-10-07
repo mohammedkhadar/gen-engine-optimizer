@@ -71,6 +71,18 @@ export default function PromptsPage() {
       return null;
     }
   };
+  // Opens the setup dialog prefilled for a fresh run on the audited site.
+  const startFreshSetup = (t: { brand: string; domain: string } | null, audit: any) => {
+    if (t) setDBrand(t.brand);
+    if (audit?.url) {
+      setDUrl(audit.url);
+      const host = hostOf(audit.url);
+      if (host) setDDomain(host);
+    }
+    setDraft([]);
+    setSuggestedFor("");
+    setDialogOpen(true);
+  };
   useEffect(() => {
     let cancelled = false;
     const check = () => {
@@ -78,44 +90,41 @@ export default function PromptsPage() {
       if (cancelled) return;
       const t = loadTarget();
       if (!t) {
-        if (audit?.url) {
-          setDUrl(audit.url);
-          const host = hostOf(audit.url);
-          if (host) setDDomain(host);
-        }
-        setDialogOpen(true);
+        startFreshSetup(null, audit);
         return;
       }
       const saved = loadResults(t);
       const auditHost = hostOf(audit?.url);
+      const targetHost = hostOf(t.domain);
       const stampedMismatch = !!(saved && saved.auditUrl && audit?.url && saved.auditUrl !== audit.url);
-      const hostMismatch = !!(saved && auditHost && hostOf(t.domain) && hostOf(t.domain) !== auditHost);
+      const hostMismatch = !!(saved && auditHost && targetHost && targetHost !== auditHost);
       if (saved && (stampedMismatch || hostMismatch)) {
         try {
           const all = JSON.parse(localStorage.getItem(LS_RESULTS) ?? "{}");
           delete all[`${t.brand.toLowerCase()}|${t.domain.toLowerCase()}`];
           localStorage.setItem(LS_RESULTS, JSON.stringify(all));
         } catch {}
-        // New site: prefill the dialog from the audit and open it so fresh
-        // prompts get suggested immediately instead of stranding the user.
+        // New site: clear stale numbers and open setup for it. Idempotent:
+        // a repeat pass (StrictMode double-effect) re-derives the same state.
         setTests([]);
         setSource(null);
         setTarget(t);
-        if (audit?.url) {
-          setDUrl(audit.url);
-          const host = hostOf(audit.url);
-          if (host) setDDomain(host);
-        }
-        setDBrand(t.brand);
-        setDraft([]);
-        setSuggestedFor("");
-        setDialogOpen(true);
+        startFreshSetup(t, audit);
         return;
       }
       setTarget(t);
       if (saved) {
         setTests(saved.tests);
         setSource(saved.source);
+        return;
+      }
+      // No saved results but the tracked target belongs to a different site
+      // than the current audit (e.g. cleared state, legacy records): open
+      // fresh setup instead of showing a dead empty page.
+      if (auditHost && targetHost && targetHost !== auditHost) {
+        setTests([]);
+        setSource(null);
+        startFreshSetup(t, audit);
       }
     });
     };

@@ -93,8 +93,18 @@ export default function PromptsPage() {
           delete all[`${t.brand.toLowerCase()}|${t.domain.toLowerCase()}`];
           localStorage.setItem(LS_RESULTS, JSON.stringify(all));
         } catch {}
+        // New site: prefill the dialog from the audit and open it so fresh
+        // prompts get suggested immediately instead of stranding the user.
         setTarget(t);
-        if (audit?.url) setDUrl(audit.url);
+        if (audit?.url) {
+          setDUrl(audit.url);
+          const host = hostOf(audit.url);
+          if (host) setDDomain(host);
+        }
+        setDBrand(t.brand);
+        setDraft([]);
+        setSuggestedFor("");
+        setDialogOpen(true);
         return;
       }
       setTarget(t);

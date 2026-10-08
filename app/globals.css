@@ -25,3 +25,12 @@ body {
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 60%, transparent 100%);
 }
+
+@keyframes loadbar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.animate-loadbar {
+  animation: loadbar-slide 1.4s ease-in-out infinite;
+}

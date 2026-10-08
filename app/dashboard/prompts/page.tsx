@@ -46,6 +46,8 @@ export default function PromptsPage() {
   const [tests, setTests] = useState<any[]>([]);
   const [source, setSource] = useState<"custom" | "llm" | "business" | "generic" | null>(null);
   const [loading, setLoading] = useState(false);
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   // setup dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dBrand, setDBrand] = useState("");
@@ -164,6 +166,8 @@ export default function PromptsPage() {
 
   const run = async (t: Target, prompts?: string[]) => {
     setLoading(true);
+    setRunStartedAt(Date.now());
+    setElapsed(0);
     try {
       const res = await fetch("/api/visibility", {
         method: "POST",
@@ -177,8 +181,18 @@ export default function PromptsPage() {
       saveResults(t, data.tests, data.batterySource ?? null, audit?.url);
     } finally {
       setLoading(false);
+      setRunStartedAt(null);
     }
   };
+
+  // Elapsed timer while a battery runs.
+  useEffect(() => {
+    if (!loading) return;
+    const id = setInterval(() => {
+      setElapsed(runStartedAt ? Math.floor((Date.now() - runStartedAt) / 1000) : 0);
+    }, 500);
+    return () => clearInterval(id);
+  }, [loading, runStartedAt]);
 
   const saveAndRun = () => {
     const clean = draft.map((p) => p.trim()).filter(Boolean).slice(0, 10);
@@ -307,6 +321,21 @@ export default function PromptsPage() {
             )}
           </div>
         </div>
+      )}
+
+      {loading && (
+        <Card className="border-violet-500/40 bg-gradient-to-br from-violet-600/15 to-transparent">
+          <div className="flex items-center gap-3">
+            <Loader2 size={18} className="animate-spin text-violet-300" />
+            <div>
+              <div className="font-semibold">Testing your prompts across AI engines… {elapsed > 0 && <span className="text-slate-400">({elapsed}s)</span>}</div>
+              <div className="text-xs text-slate-400">Asking each engine, checking citations, scoring sentiment. Live providers can take up to a minute.</div>
+            </div>
+          </div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-indigo-400 to-emerald-400 animate-loadbar" />
+          </div>
+        </Card>
       )}
 
       <div className="grid gap-4">

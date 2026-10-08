@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Card, Badge, Progress } from "@/components/ui";
-import { Loader2, Plus, Pencil, X, Play, RotateCw } from "lucide-react";
+import { Loader2, Plus, Pencil, X, Play, RotateCw, Sparkles } from "lucide-react";
 import { loadCachedAudit } from "@/lib/audit-cache";
 
 const LS_RESULTS = "rankai:prompt-results";
@@ -159,14 +159,8 @@ export default function PromptsPage() {
     }
   };
 
-  // Auto-suggest once brand+domain are typed in the dialog — debounced so a
-  // half-typed brand ("G") never triggers a draft; min 2 chars.
-  useEffect(() => {
-    if (!dialogOpen || dBrand.trim().length < 2 || !dDomain.trim() || draft.length || suggesting) return;
-    const id = setTimeout(() => suggest(dBrand, dDomain, dUrl), 900);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dialogOpen, dBrand, dDomain]);
+  // Suggestions are explicit (button only) — never auto-fired while typing,
+  // so half-typed brands can't trigger drafts.
 
   const run = async (t: Target, prompts?: string[]) => {
     setLoading(true);
@@ -291,10 +285,13 @@ export default function PromptsPage() {
                   </div>
                 ))}
                 {!draft.length && !suggesting && (
-                  <button onClick={() => suggest(dBrand, dDomain, dUrl)} disabled={!dBrand.trim() || !dDomain.trim()}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/15 px-4 py-2.5 text-sm hover:bg-white/5 disabled:opacity-40">
-                    Suggest 5 prompts for my business
-                  </button>
+                  <>
+                    <button onClick={() => suggest(dBrand, dDomain, dUrl)} disabled={!dBrand.trim() || !dDomain.trim()}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-slate-200 disabled:opacity-40">
+                      <Sparkles size={15} /> Suggest 5 prompts for my business
+                    </button>
+                    <p className="text-center text-[11px] text-slate-500">Reads your site, then drafts buyer questions — or add your own below.</p>
+                  </>
                 )}
                 {!!draft.length && draft.length < 10 && (
                   <button onClick={() => setDraft([...draft, ""])}

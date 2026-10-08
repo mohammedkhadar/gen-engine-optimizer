@@ -159,11 +159,12 @@ export default function PromptsPage() {
     }
   };
 
-  // Auto-suggest once brand+domain are typed in the dialog.
+  // Auto-suggest once brand+domain are typed in the dialog — debounced so a
+  // half-typed brand ("G") never triggers a draft; min 2 chars.
   useEffect(() => {
-    if (dialogOpen && dBrand.trim() && dDomain.trim() && !draft.length && !suggesting) {
-      suggest(dBrand, dDomain, dUrl);
-    }
+    if (!dialogOpen || dBrand.trim().length < 2 || !dDomain.trim() || draft.length || suggesting) return;
+    const id = setTimeout(() => suggest(dBrand, dDomain, dUrl), 900);
+    return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialogOpen, dBrand, dDomain]);
 

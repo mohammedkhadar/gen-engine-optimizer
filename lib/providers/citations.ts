@@ -209,9 +209,10 @@ export async function livePromptTest(brand: string, domain: string, prompt: stri
   });
 }
 
-/** Generate 5 buyer prompts from real page content using an LLM (Groq first,
- *  then OpenAI). Returns null when no key is set or parsing fails — callers
- *  fall back to the template battery. */
+/** Generate buyer prompts from real page content using an LLM (Groq first,
+ *  then OpenAI). One per dimension: category, industry, geography, price,
+ *  team size, integrations, security, alternatives, migration, operations.
+ *  Returns null when no key is set or parsing fails — callers fall back. */
 export async function generateBusinessPrompts(
   brand: string,
   domain: string,
@@ -219,7 +220,7 @@ export async function generateBusinessPrompts(
 ): Promise<string[] | null> {
   const text = pageText.slice(0, 3000);
   if (!text.trim()) return null;
-  const system = `You write buyer research prompts for AI-visibility testing. Given a business web page, write exactly 5 diverse questions a real buyer would ask an AI assistant: one comparing alternatives, one about reputation/reviews, one direct vs-competitor, one about pricing, one about community opinion (Reddit/forums). Reply with ONLY a JSON array of 5 strings, no other text.`;
+  const system = `You write buyer research prompts for AI-visibility testing. Given a business web page, write exactly 10 questions a real buyer would ask an AI assistant — one per dimension, in this order: category, industry, geography, price, team size, integrations, security, competitor alternatives, migration, operational/community opinion. Reply with ONLY a JSON array of 10 strings, no other text.`;
   const user = `Business: ${brand} (${domain}). Page content:\n${text}\n\nWrite the 5 buyer questions.`;
   const attempts: { base: string; key?: string; model: string }[] = [
     { base: "https://api.groq.com/openai/v1", key: process.env.GROQ_API_KEY, model: process.env.GROQ_MODEL || "qwen/qwen3.8-27b" },
@@ -250,8 +251,9 @@ export async function generateBusinessPrompts(
         if (m) raw = m[0];
       }
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length === 5 && parsed.every((p) => typeof p === "string" && p.length > 10)) {
-        return parsed;
+      if (Array.isArray(parsed)) {
+        const clean = parsed.filter((p) => typeof p === "string" && p.trim().length > 10).slice(0, 10);
+        if (clean.length >= 5) return clean;
       }
     } catch {
       continue;

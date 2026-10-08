@@ -533,11 +533,18 @@ export function buildBusinessPrompts(brand: string, domain: string, text: string
   // Location hint: "in <Place>" pattern from the copy.
   const loc = /bin\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/.exec(text)?.[1] ?? "";
   const where = loc ? ` in ${loc}` : "";
+  // One prompt per buyer dimension: category, industry, geography, price,
+  // team size, integrations, security, alternatives, migration, operations.
   return [
     `What is the best ${shortOffering} for small business — ${clean} or alternatives?`,
-    `Is ${clean} reliable${where}? Reviews and pricing?`,
-    `${clean} vs competitors — which should I choose?`,
+    `Which ${shortOffering} is most popular with ${loc ? loc + " " : ""}professionals?`,
+    `Is there a good ${shortOffering} option${where}?`,
     `How much does ${clean}${where} cost?`,
+    `Is ${clean} a good fit for a 10-person team?`,
+    `Does ${clean} integrate with the tools we already use?`,
+    `Is ${clean} secure and compliant${where ? ` for ${loc}` : ""}?`,
+    `${clean} vs competitors — which should I choose?`,
+    `How hard is it to migrate to ${clean} from what we use now?`,
     `What do people say about ${bare}${where} online?`,
   ];
 }
@@ -553,7 +560,7 @@ export function simulatePromptTests(brand: string, domain: string, customPrompts
   ];
   const engines = ["ChatGPT", "Perplexity", "Gemini", "Claude", "Copilot"];
   const seed = hashStr(brand + domain);
-  const CATS = ["Comparison", "Reputation", "Comparison", "Pricing", "Reputation"];
+  const CATS = ["Comparison", "Industry", "Geography", "Pricing", "Team size", "Integrations", "Security", "Alternatives", "Migration", "Operations"];
   return prompts.map((prompt, i) => {
     const mentions = engines.map((engine, j) => {
       const r = hashStr(prompt + engine) % 100;

@@ -6,5 +6,5 @@ import { buildBattery } from "@/lib/prompts";
 export async function POST(req: NextRequest) {
   const { brand = "Acme", domain = "acme.com", url } = await req.json().catch(() => ({}));
   const { prompts, source } = await buildBattery(String(brand), String(domain), url ? String(url) : undefined);
-  return NextResponse.json({ prompts: prompts.slice(0, 5), source });
+  return NextResponse.json({ prompts: prompts.slice(0, 10), source });
 }

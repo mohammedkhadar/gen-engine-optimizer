@@ -302,7 +302,7 @@ export default function PromptsPage() {
                   <>
                     <button onClick={() => suggest(dBrand, dDomain, dUrl)} disabled={!dBrand.trim() || !dDomain.trim()}
                       className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black hover:bg-slate-200 disabled:opacity-40">
-                      <Sparkles size={15} /> Suggest 5 prompts for my business
+                      <Sparkles size={15} /> Suggest 10 prompts for my business
                     </button>
                     <p className="text-center text-[11px] text-slate-500">Reads your site, then drafts buyer questions — or add your own below.</p>
                   </>
